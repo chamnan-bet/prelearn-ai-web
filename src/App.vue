@@ -1,11 +1,19 @@
-<script setup></script>
-
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <div class="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col md:pb-0 pb-20">
+    
+    <div class="hidden md:block">
+      <TopNav />
+    </div>
+
+    <RouterView class="flex-grow" />
+    
+    <BottomNav />
+
+  </div>
 </template>
 
-<style scoped></style>
+<script setup>
+import { RouterView } from 'vue-router'
+import TopNav from '@/components/layout/TopNav.vue'
+import BottomNav from '@/components/layout/BottomNav.vue'
+</script>
