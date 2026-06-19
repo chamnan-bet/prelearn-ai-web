@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import PatternView from '../views/PatternView.vue'
-import PracticeView from '../views/PracticeView.vue' // <-- Import the new view
+import PracticeView from '../views/PracticeView.vue'
+import AiTutorView from '../views/AiTutorView.vue'
+import ProgressView from '../views/ProgressView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,16 +14,38 @@ const router = createRouter({
       component: HomeView
     },
     {
+      // /patterns with no subject redirects to math as default
       path: '/patterns',
-      name: 'patterns',
-      component: PatternView
+      redirect: '/patterns/math'
     },
     {
-      // The :subject makes it dynamic, so it catches /practice/math or /practice/physics
-      path: '/practice/:subject', 
+      // Catches /patterns/math, /patterns/physics, etc.
+      path: '/patterns/:subject',
+      name: 'patterns',
+      component: PatternView,
+      props: true
+    },
+    {
+      // Catches /practice/math?patternId=1, /practice/physics?patternId=3, etc.
+      path: '/practice/:subject',
       name: 'practice',
       component: PracticeView,
-      props: true // This allows the component to easily read the subject parameter
+      props: true
+    },
+    {
+      path: '/ai-tutor',
+      name: 'ai-tutor',
+      component: AiTutorView
+    },
+    {
+      // /tutor is used in old nav links — redirect to the correct path
+      path: '/tutor',
+      redirect: '/ai-tutor'
+    },
+    {
+      path: '/progress',
+      name: 'progress',
+      component: ProgressView
     }
   ]
 })
