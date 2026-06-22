@@ -9,6 +9,7 @@
       </div>
       <div class="flex items-center gap-2">
         <RouterLink
+          v-if="!user"
           to="/login"
           class="md:hidden text-xs font-bold text-blue-700 hover:text-blue-800 transition px-3 py-1.5 rounded-xl border border-blue-200 hover:bg-blue-50"
         >
@@ -110,8 +111,10 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { user } = useAuth()
 
 const goToPatterns = (subjectId) => {
   router.push({ name: 'patterns', params: { subject: subjectId } })

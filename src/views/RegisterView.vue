@@ -119,6 +119,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { registerUser } from '@/services/auth'
 
 const router = useRouter()
 
@@ -130,16 +131,21 @@ const passwordMismatch = computed(
   () => form.confirm.length > 0 && form.password !== form.confirm
 )
 
+const firebaseErrors = {
+  'auth/email-already-in-use': 'This email is already registered.',
+  'auth/invalid-email': 'Invalid email address.',
+  'auth/weak-password': 'Password must be at least 6 characters.',
+}
+
 async function handleRegister() {
   if (passwordMismatch.value) return
   loading.value = true
   error.value = ''
   try {
-    // TODO: wire up Firebase Auth
-    console.log('Register', form.name, form.email)
+    await registerUser(form.name, form.email, form.password)
     router.push('/')
   } catch (e) {
-    error.value = e.message || 'Registration failed. Please try again.'
+    error.value = firebaseErrors[e.code] || 'Registration failed. Please try again.'
   } finally {
     loading.value = false
   }

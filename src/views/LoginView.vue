@@ -86,6 +86,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { loginUser } from '@/services/auth'
 
 const router = useRouter()
 
@@ -93,15 +94,21 @@ const form = reactive({ email: '', password: '' })
 const loading = ref(false)
 const error = ref('')
 
+const firebaseErrors = {
+  'auth/invalid-credential': 'Incorrect email or password.',
+  'auth/user-not-found': 'No account found with this email.',
+  'auth/wrong-password': 'Incorrect password.',
+  'auth/too-many-requests': 'Too many attempts. Please try again later.',
+}
+
 async function handleLogin() {
   loading.value = true
   error.value = ''
   try {
-    // TODO: wire up Firebase Auth
-    console.log('Login with', form.email)
+    await loginUser(form.email, form.password)
     router.push('/')
   } catch (e) {
-    error.value = e.message || 'Sign in failed. Please try again.'
+    error.value = firebaseErrors[e.code] || 'Sign in failed. Please try again.'
   } finally {
     loading.value = false
   }

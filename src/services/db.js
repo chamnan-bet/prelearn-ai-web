@@ -1,7 +1,7 @@
-import { getDatabase } from "firebase/database";
-import { app } from "./firebase";
+import { getFirestore } from 'firebase/firestore'
+import { app } from './firebase'
 
-export const db = getDatabase(app);
+export const db = getFirestore(app)
 
-// Add functions to read/write questions or AI warnings here
+// Add functions to read/write questions or user data here
 // e.g. export const fetchQuestions = async () => { ... }

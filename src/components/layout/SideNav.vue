@@ -41,9 +41,25 @@
       </RouterLink>
     </nav>
 
-    <!-- Sign in -->
+    <!-- User section -->
     <div class="px-4 py-4 border-t border-slate-100 shrink-0">
+
+      <!-- Logged in: avatar + name + sign out -->
+      <div v-if="user" class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-blue-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
+          {{ userInitial }}
+        </div>
+        <div class="min-w-0 flex-grow">
+          <p class="text-sm font-bold text-slate-900 truncate">{{ user.displayName || 'Student' }}</p>
+          <button @click="handleSignOut" class="text-xs text-slate-400 hover:text-red-500 transition-colors">
+            Sign out
+          </button>
+        </div>
+      </div>
+
+      <!-- Logged out: sign in link -->
       <RouterLink
+        v-else
         to="/login"
         class="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
       >
@@ -52,15 +68,29 @@
         </svg>
         <span class="flex-grow">Sign in</span>
       </RouterLink>
+
     </div>
   </aside>
 </template>
 
 <script setup>
-
-import { useRoute, RouterLink } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute, RouterLink, useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+import { signOutUser } from '@/services/auth'
 
 const route = useRoute()
+const router = useRouter()
+const { user } = useAuth()
+
+const userInitial = computed(() =>
+  user.value?.displayName ? user.value.displayName[0].toUpperCase() : '?'
+)
+
+async function handleSignOut() {
+  await signOutUser()
+  router.push('/')
+}
 
 const isRoute = (name) => route.name === name
 
