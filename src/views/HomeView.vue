@@ -7,11 +7,19 @@
         <p class="font-black text-slate-900 text-base leading-tight">PreLearn</p>
         <p class="text-xs text-slate-400">Bac II exam preparation</p>
       </div>
-      <button class="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-400 hover:bg-amber-100 transition" aria-label="Notifications">
+      <div class="flex items-center gap-2">
+        <RouterLink
+          to="/login"
+          class="md:hidden text-xs font-bold text-blue-700 hover:text-blue-800 transition px-3 py-1.5 rounded-xl border border-blue-200 hover:bg-blue-50"
+        >
+          Sign in
+        </RouterLink>
+        <button class="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-400 hover:bg-amber-100 transition" aria-label="Notifications">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
           <path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0 1 13.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 0 1-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 1 1-7.48 0 24.585 24.585 0 0 1-4.831-1.244.75.75 0 0 1-.298-1.205A8.217 8.217 0 0 0 5.25 9.75V9Zm4.502 8.9a2.25 2.25 0 1 0 4.496 0 25.057 25.057 0 0 1-4.496 0Z" clip-rule="evenodd" />
         </svg>
       </button>
+      </div>
     </header>
 
     <main class="p-6 flex-grow">
@@ -101,7 +109,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 
 const router = useRouter()
 
