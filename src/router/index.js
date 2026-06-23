@@ -60,7 +60,13 @@ const router = createRouter({
       path: '/progress',
       name: 'progress',
       component: ProgressView
-    }
+    },
+    ...(import.meta.env.DEV ? [{
+      path: '/dev/seed',
+      name: 'dev-seed',
+      component: () => import('../views/DevSeedView.vue'),
+      meta: { hideNav: true }
+    }] : [])
   ]
 })
 

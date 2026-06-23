@@ -34,7 +34,16 @@
 
     <!-- Practice card -->
     <div class="p-6 flex-grow">
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm w-full">
+
+      <!-- Loading -->
+      <div v-if="loading" class="bg-white rounded-2xl border border-slate-200 shadow-sm w-full h-64 animate-pulse"></div>
+
+      <!-- Error -->
+      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-xl px-5 py-4 text-sm text-red-700 font-semibold">
+        {{ error }}
+      </div>
+
+      <div v-else class="bg-white rounded-2xl border border-slate-200 shadow-sm w-full">
 
         <!-- Tab bar -->
         <div class="flex border-b border-slate-100" role="tablist">
@@ -162,20 +171,36 @@
         </div>
 
       </div>
+
+      </div>
     </div>
-  </div>
 </template>
 
 <script setup>
-import { ref, computed, h } from 'vue'
+import { ref, computed, h, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
+import { fetchPatternById } from '@/services/patterns'
 
 const route = useRoute()
 
 const subject = computed(() => route.params.subject ?? 'math')
-const patternId = computed(() => Number(route.query.patternId ?? 1))
+const patternId = computed(() => route.query.patternId ?? 'p001')
 
+const pattern = ref(null)
+const loading = ref(true)
+const error = ref('')
 const activeTab = ref('warning')
+
+onMounted(async () => {
+  try {
+    pattern.value = await fetchPatternById(subject.value, patternId.value)
+    if (!pattern.value) error.value = 'Pattern not found.'
+  } catch (e) {
+    error.value = 'Could not load this pattern. Please try again.'
+  } finally {
+    loading.value = false
+  }
+})
 
 const tabs = [
   {
@@ -213,32 +238,4 @@ const tabs = [
   }
 ]
 
-const patternDatabase = {
-  1: {
-    id: 1,
-    subject: 'Quadratic Equations',
-    risk: 'High risk',
-    title: 'Forgetting the second root',
-    warningBody: 'Every quadratic equation with x² has exactly two solutions. Many students solve for only the positive root and miss the negative one completely.',
-    preWarning: 'When an equation has x², there are always TWO solutions — one positive (+√) and one negative (−√). Many students find only one and lose 3 marks.',
-    question: 'Solve: 2(x − 3)² = 8',
-    questionHint: 'You have been warned. Think carefully before solving. How many solutions should this have?',
-    mistakeLines: [
-      { text: '2(x−3)² = 8', wrong: false },
-      { text: '(x−3)² = 4', wrong: false },
-      { text: 'x−3 = 2',   wrong: true, annotation: '← only +root' },
-      { text: 'x = 5',     wrong: true, annotation: '→ WRONG (incomplete)' }
-    ],
-    mistakeExplanation: 'This loses 3 marks. Only one root was found.',
-    correctLines: [
-      { text: '2(x−3)² = 8',        correct: false },
-      { text: '(x−3)² = 4',         correct: false },
-      { text: 'x−3 = ±2',           correct: false },
-      { text: 'x = 5  and  x = 1  ✓', correct: true }
-    ],
-    correctExplanation: 'Marks saved! Both solutions found. Never miss this again.'
-  }
-}
-
-const pattern = computed(() => patternDatabase[patternId.value] ?? patternDatabase[1])
 </script>

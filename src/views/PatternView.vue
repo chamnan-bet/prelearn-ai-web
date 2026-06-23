@@ -35,8 +35,18 @@
     <!-- Pattern list -->
     <div class="p-6 flex-grow">
 
+      <!-- Loading -->
+      <div v-if="loading" class="space-y-3">
+        <div v-for="n in 4" :key="n" class="bg-white rounded-xl border border-slate-100 h-24 animate-pulse"></div>
+      </div>
+
+      <!-- Error -->
+      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-xl px-5 py-4 text-sm text-red-700 font-semibold">
+        {{ error }}
+      </div>
+
       <!-- High Risk -->
-      <section class="mb-8" aria-labelledby="high-risk-heading">
+      <section v-else class="mb-8" aria-labelledby="high-risk-heading">
         <h2 id="high-risk-heading" class="text-[10px] font-black text-amber-600 tracking-widest uppercase mb-3">
           High risk — avoid these first
         </h2>
@@ -75,7 +85,7 @@
       </section>
 
       <!-- Medium Risk -->
-      <section aria-labelledby="medium-risk-heading">
+      <section v-if="!loading && !error" aria-labelledby="medium-risk-heading">
         <h2 id="medium-risk-heading" class="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-3">
           Medium risk
         </h2>
@@ -118,13 +128,17 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { fetchPatterns } from '@/services/patterns'
 
 const route = useRoute()
 const router = useRouter()
 
 const subject = computed(() => route.params.subject ?? 'math')
+const allPatterns = ref([])
+const loading = ref(true)
+const error = ref('')
 
 const subjectLabel = computed(() => {
   const labels = {
@@ -134,41 +148,18 @@ const subjectLabel = computed(() => {
   return labels[subject.value] ?? subject.value
 })
 
-const allPatterns = [
-  {
-    id: 1,
-    title: 'Forgetting the second root',
-    description: 'Taking only +√ and missing −√ in quadratic equations.',
-    risk: 'High risk', riskLevel: 'high', marks: '−3 marks avg', borderVariant: 'high'
-  },
-  {
-    id: 2,
-    title: 'Skipping algebra steps',
-    description: 'Jumping steps loses method marks even when the answer is right.',
-    risk: 'High risk', riskLevel: 'high', marks: '−2 marks avg', borderVariant: 'high'
-  },
-  {
-    id: 3,
-    title: 'Forgetting +C in integration',
-    description: 'Omitting the constant of integration is an automatic deduction.',
-    risk: 'High risk', riskLevel: 'high', marks: '−1 mark avg', borderVariant: 'high-rose'
-  },
-  {
-    id: 4,
-    title: 'Wrong domain for ln(x)',
-    description: 'Not checking x > 0 before applying logarithm rules.',
-    risk: 'Medium risk', riskLevel: 'medium', marks: '−2 marks avg', borderVariant: 'medium'
-  },
-  {
-    id: 5,
-    title: 'Degrees vs radians',
-    description: 'Using degrees instead of radians in calculus problems.',
-    risk: 'Low risk', riskLevel: 'low', marks: '−1 mark avg', borderVariant: 'low'
+onMounted(async () => {
+  try {
+    allPatterns.value = await fetchPatterns(subject.value)
+  } catch (e) {
+    error.value = 'Could not load patterns. Please try again.'
+  } finally {
+    loading.value = false
   }
-]
+})
 
-const highRiskPatterns = computed(() => allPatterns.filter(p => p.riskLevel === 'high'))
-const lowerRiskPatterns = computed(() => allPatterns.filter(p => p.riskLevel !== 'high'))
+const highRiskPatterns = computed(() => allPatterns.value.filter(p => p.riskLevel === 'high'))
+const lowerRiskPatterns = computed(() => allPatterns.value.filter(p => p.riskLevel !== 'high'))
 
 const borderClass = (pattern) => {
   const map = {
