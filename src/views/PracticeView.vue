@@ -16,12 +16,12 @@
 
         <div class="min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
-            <h1 class="font-bold text-slate-900 text-lg leading-tight">{{ pattern.subject }}</h1>
+            <h1 class="font-bold text-slate-900 text-lg leading-tight">{{ pattern?.subject }}</h1>
             <span class="bg-red-50 text-red-600 border border-red-100 text-xs font-bold px-2.5 py-0.5 rounded-full shrink-0">
-              {{ pattern.risk }}
+              {{ pattern?.risk }}
             </span>
           </div>
-          <p class="text-xs text-slate-400 mt-0.5">Pattern #{{ pattern.id }} of 30</p>
+          <p class="text-xs text-slate-400 mt-0.5">Pattern #{{ pattern?.order }} of 30</p>
         </div>
       </div>
 
