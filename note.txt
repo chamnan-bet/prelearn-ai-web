@@ -86,3 +86,33 @@ Prereq graph?       Partial         Full            Full
 1. BFS first   — low effort, teaches graph traversal, visible on PracticeView
 2. Dijkstra    — the main showpiece feature, builds on BFS graph
 3. A*          — only if time allows; Dijkstra already covers the core concept
+
+
+── What BFS assists in this project ─────────────────────────────────────────
+
+BFS assists the student in two specific ways:
+
+1. Contextual awareness during practice
+   When a student opens a pattern (e.g. p001 — "Not factoring a 0/0 limit"),
+   BFS traverses the graph 1 hop outward and surfaces directly related patterns:
+     p002 (rationalize), p003 (∞/∞), p004 (L'Hôpital)
+   This tells the student: "These patterns share the same root skill — if you
+   struggle here, you likely need these too."
+
+2. Guided navigation between connected mistakes
+   Each related pattern card is clickable. Clicking one navigates to that
+   pattern's practice page, re-runs BFS from the new node, and shows a fresh
+   set of neighbors. The student can explore the graph naturally without
+   returning to the pattern list.
+
+What BFS does NOT do (important distinction):
+   - It does not rank patterns by urgency (that is Greedy's job)
+   - It does not find an optimal study order (that is Dijkstra's job)
+   - It only answers: "Given where I am, what is directly connected?"
+
+The graph structure (src/data/patternGraph.js):
+   - 30 nodes (patterns)
+   - Edges based on: same subject group, shared prerequisite technique,
+     or overlapping exam skill (e.g. p004 L'Hôpital ↔ p029 ODE char eq,
+     because both require understanding derivatives)
+   - BFS runs client-side in O(V+E) time — always instant, no API call needed
