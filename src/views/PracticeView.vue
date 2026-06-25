@@ -159,14 +159,29 @@
             <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
           </div>
 
-          <RouterLink
-            :to="{ name: 'ai-tutor', query: { subject: subject, patternId: patternId } }"
-            class="w-full bg-blue-700 hover:bg-blue-800 active:scale-[0.99] text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2"
+          <!-- Already mastered -->
+          <div v-if="isMasteredNow" class="bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-3 flex items-center justify-center gap-2 text-sm font-bold text-emerald-700 mb-3">
+            <span>✓</span> Mastered — great work!
+          </div>
+
+          <!-- Mark as Mastered (logged in, not yet mastered) -->
+          <button
+            v-else-if="user"
+            :disabled="mastering"
+            class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mb-3"
+            @click="handleMastered"
           >
-            Ask AI Tutor
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-            </svg>
+            <span v-if="mastering">Saving…</span>
+            <span v-else>Mark as Mastered ✓</span>
+          </button>
+
+          <!-- Prompt to sign in (not logged in) -->
+          <RouterLink
+            v-else
+            to="/login"
+            class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mb-3 text-sm"
+          >
+            Sign in to track your progress
           </RouterLink>
         </div>
 
@@ -177,11 +192,15 @@
 </template>
 
 <script setup>
-import { ref, computed, h, onMounted } from 'vue'
+import { ref, computed, h, onMounted, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { fetchPatternById } from '@/services/patterns'
+import { useAuth } from '@/composables/useAuth'
+import { useProgress } from '@/composables/useProgress'
 
 const route = useRoute()
+const { user } = useAuth()
+const { masteredIds, loadProgress, markMastered } = useProgress()
 
 const subject = computed(() => route.params.subject ?? 'math')
 const patternId = computed(() => route.query.patternId ?? 'p001')
@@ -190,6 +209,16 @@ const pattern = ref(null)
 const loading = ref(true)
 const error = ref('')
 const activeTab = ref('warning')
+const mastering = ref(false)
+
+const isMasteredNow = computed(() => masteredIds.value.has(patternId.value))
+
+const handleMastered = async () => {
+  if (!user.value || mastering.value) return
+  mastering.value = true
+  await markMastered(user.value.uid, patternId.value)
+  mastering.value = false
+}
 
 onMounted(async () => {
   try {
@@ -201,6 +230,10 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+watch(user, async (u) => {
+  await loadProgress(u?.uid)
+}, { immediate: true })
 
 const tabs = [
   {

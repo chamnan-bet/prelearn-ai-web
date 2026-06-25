@@ -30,13 +30,13 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-5">
           <div>
             <div class="flex items-baseline gap-1">
-              <span class="text-4xl font-black">12</span>
+              <span class="text-4xl font-black">{{ masteredCount }}</span>
               <span class="text-blue-300 text-xl font-bold">/30</span>
             </div>
             <p class="text-blue-200 text-[10px] font-black uppercase tracking-widest mt-1">Patterns Mastered</p>
           </div>
           <div>
-            <div class="text-4xl font-black">84%</div>
+            <div class="text-4xl font-black">{{ predictedScore }}%</div>
             <p class="text-blue-200 text-[10px] font-black uppercase tracking-widest mt-1">Predicted Score</p>
           </div>
           <div>
@@ -52,9 +52,36 @@
           </div>
         </div>
         <div class="bg-blue-500/40 rounded-full h-2 overflow-hidden mb-2">
-          <div class="bg-white rounded-full h-2 transition-all duration-1000" style="width: 40%"></div>
+          <div class="bg-white rounded-full h-2 transition-all duration-700" :style="{ width: progressPercent + '%' }"></div>
         </div>
-        <p class="text-blue-300 text-xs">40% overall progress</p>
+        <p class="text-blue-300 text-xs">{{ progressPercent }}% overall progress</p>
+      </div>
+
+      <!-- Greedy recommendation card -->
+      <div v-if="nextPattern" class="mb-7">
+        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">AI Recommendation</p>
+        <div
+          class="bg-white border border-blue-200 rounded-2xl px-6 py-5 flex items-center justify-between gap-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
+          @click="goToPractice(nextPattern)"
+        >
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest">Study next</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" :class="nextPattern.riskLevel === 'high' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-amber-50 text-amber-600 border border-amber-100'">
+                {{ nextPattern.risk }}
+              </span>
+              <span class="text-[10px] font-bold text-slate-400">{{ nextPattern.marks }}</span>
+            </div>
+            <p class="font-bold text-slate-900 text-base leading-tight truncate">{{ nextPattern.title }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">{{ nextPattern.subject }}</p>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 text-blue-600 shrink-0" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+        </div>
+      </div>
+      <div v-else-if="masteredCount === 30" class="mb-7 bg-emerald-50 border border-emerald-200 rounded-2xl px-6 py-5 text-emerald-700 font-bold text-sm">
+        ✓ All 30 patterns mastered — you are exam ready!
       </div>
 
       <!-- Section label -->
@@ -109,15 +136,32 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useProgress } from '@/composables/useProgress'
+import { greedyNextPattern } from '@/composables/useGreedy'
+import { mathPatterns } from '@/data/mathPatterns'
 
 const router = useRouter()
 const { user } = useAuth()
+const { masteredIds, loadProgress } = useProgress()
+
+watch(user, async (u) => {
+  await loadProgress(u?.uid)
+}, { immediate: true })
+
+const masteredCount = computed(() => masteredIds.value.size)
+const predictedScore = computed(() => Math.round(50 + (masteredCount.value / 30) * 50))
+const progressPercent = computed(() => Math.round((masteredCount.value / 30) * 100))
+const nextPattern = computed(() => greedyNextPattern(mathPatterns, masteredIds.value))
 
 const goToPatterns = (subjectId) => {
   router.push({ name: 'patterns', params: { subject: subjectId } })
+}
+
+const goToPractice = (pattern) => {
+  router.push({ name: 'practice', params: { subject: 'math' }, query: { patternId: pattern.id } })
 }
 
 const subjects = ref([
