@@ -1,0 +1,88 @@
+PLANNING: BFS, Dijkstra, A* for PreLearn.ai
+===========================================
+
+
+── BFS — "Related Patterns" panel ─────────────────────────────────────────
+
+Problem it solves:
+  When studying a pattern, show which other patterns are connected to it —
+  so the student knows what else to review.
+
+How it works in the project:
+  - Build a graph where patterns are nodes and edges connect related patterns
+    (same subject, shared prerequisite, or same exam year)
+  - BFS from the current pattern outward — finds all patterns within 1–2 hops
+  - Display them as "You should also study these"
+
+Data needed:
+  A edges map in mathPatterns.js listing which patterns connect to which.
+  Example:
+    p001 → [p002, p003, p004]   (all limits patterns)
+    p004 → [p001, p029]          (L'Hôpital links to ODE characteristic equation)
+
+UI:
+  A small panel on PracticeView showing 2–3 related pattern chips.
+
+Effort: Low — graph is small (30 nodes), BFS on 30 nodes is trivial.
+
+
+── Dijkstra — "Optimal Study Path" ─────────────────────────────────────────
+
+Problem it solves:
+  Given your current mastery, find the most efficient ORDER to study all
+  remaining patterns to maximize mark recovery.
+
+How it works in the project:
+  - Nodes = patterns, edges = study order relationships (prerequisites)
+  - Edge weight = inverse of marksAtRisk (low weight = high priority)
+  - Dijkstra finds the shortest weighted path from "current state" to "all mastered"
+  - Output: an ordered list — "study p006, then p008, then p020..."
+
+Data needed:
+  Same prerequisite graph as BFS, plus numeric marksAtRisk weights
+  (already parseable from the marks field in each pattern).
+
+UI:
+  A "My Study Path" page showing a numbered roadmap of patterns in optimal order.
+
+Effort: Medium — need to define the full prerequisite graph carefully.
+
+
+── A* — "Deadline-Aware Study Path" ────────────────────────────────────────
+
+Problem it solves:
+  Same as Dijkstra, but factors in the exam date — if only 5 days left,
+  skip low-risk patterns and focus only on high-risk ones.
+
+How it works in the project:
+  - Dijkstra + a heuristic: h(pattern) = estimated marks still at risk
+    if this pattern is skipped
+  - The heuristic gets tighter as the exam date approaches — A* becomes
+    more aggressive about prioritizing high-risk patterns
+  - Output: same ordered path as Dijkstra but re-ranked based on days remaining
+
+Data needed:
+  Same graph as Dijkstra + exam date (user input or hardcoded).
+
+UI:
+  Same "Study Path" page but with a countdown and a note like:
+  "3 days left — skipping medium-risk patterns"
+
+Effort: High — depends on Dijkstra being built first; heuristic design needs thought.
+
+
+── Comparison ───────────────────────────────────────────────────────────────
+
+                    BFS             Dijkstra        A*
+Builds on           Nothing         Greedy          Dijkstra (must build first)
+Effort              Low             Medium          High
+Visible to user     Small sidebar   Full page       Full page + deadline
+AI concept taught   Graph traversal Weighted path   Informed heuristic search
+Prereq graph?       Partial         Full            Full
+
+
+── Suggested order ──────────────────────────────────────────────────────────
+
+1. BFS first   — low effort, teaches graph traversal, visible on PracticeView
+2. Dijkstra    — the main showpiece feature, builds on BFS graph
+3. A*          — only if time allows; Dijkstra already covers the core concept

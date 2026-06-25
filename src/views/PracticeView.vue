@@ -187,18 +187,50 @@
 
       </div>
 
+      <!-- Related Patterns (BFS) -->
+      <div v-if="!loading && relatedPatterns.length" class="mt-6">
+        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Related Patterns</p>
+        <div class="flex flex-col gap-3">
+          <button
+            v-for="p in relatedPatterns"
+            :key="p.id"
+            @click="goToPattern(p.id)"
+            class="bg-white border border-slate-200 rounded-xl px-5 py-4 flex items-center justify-between gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all text-left w-full"
+          >
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap mb-0.5">
+                <span
+                  class="text-xs font-bold"
+                  :class="p.riskLevel === 'high' ? 'text-red-500' : 'text-amber-500'"
+                >{{ p.risk }}</span>
+                <span class="text-xs text-slate-400">{{ p.marks }}</span>
+              </div>
+              <p class="font-semibold text-slate-900 text-sm leading-tight truncate">{{ p.title }}</p>
+              <p class="text-xs text-slate-400 mt-0.5">{{ p.subject }}</p>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-slate-400 shrink-0" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
       </div>
     </div>
 </template>
 
 <script setup>
 import { ref, computed, h, onMounted, watch } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { fetchPatternById } from '@/services/patterns'
 import { useAuth } from '@/composables/useAuth'
 import { useProgress } from '@/composables/useProgress'
+import { bfsRelatedPatterns } from '@/composables/useBFS'
+import { patternGraph } from '@/data/patternGraph'
+import { mathPatterns } from '@/data/mathPatterns'
 
 const route = useRoute()
+const router = useRouter()
 const { user } = useAuth()
 const { masteredIds, loadProgress, markMastered } = useProgress()
 
@@ -213,6 +245,11 @@ const mastering = ref(false)
 
 const isMasteredNow = computed(() => masteredIds.value.has(patternId.value))
 
+// BFS — direct neighbors of the current pattern in the graph
+const relatedPatterns = computed(() =>
+  bfsRelatedPatterns(patternId.value, patternGraph, mathPatterns)
+)
+
 const handleMastered = async () => {
   if (!user.value || mastering.value) return
   mastering.value = true
@@ -220,16 +257,28 @@ const handleMastered = async () => {
   mastering.value = false
 }
 
-onMounted(async () => {
+const goToPattern = (id) => {
+  router.push({ name: 'practice', params: { subject: subject.value }, query: { patternId: id } })
+}
+
+const loadPattern = async (id) => {
+  loading.value = true
+  error.value = ''
+  activeTab.value = 'warning'
   try {
-    pattern.value = await fetchPatternById(subject.value, patternId.value)
+    pattern.value = await fetchPatternById(subject.value, id)
     if (!pattern.value) error.value = 'Pattern not found.'
   } catch (e) {
     error.value = 'Could not load this pattern. Please try again.'
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(() => loadPattern(patternId.value))
+
+// Reload when user navigates to a related pattern
+watch(patternId, (newId) => loadPattern(newId))
 
 watch(user, async (u) => {
   await loadProgress(u?.uid)
