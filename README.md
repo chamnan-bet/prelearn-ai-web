@@ -22,7 +22,7 @@ An AI-powered exam preparation web app for Cambodian **Bac II** students. PreLea
 | Build tool | Vite 8 |
 | Styling | Tailwind CSS 4 |
 | Routing | Vue Router 5 |
-| Backend | Firebase (Auth · Realtime Database · Analytics) |
+| Backend | Firebase (Auth · Cloud Firestore · Analytics) |
 | Linting | ESLint + Oxlint + Prettier |
 | Deployment | Firebase Hosting |
 
@@ -98,20 +98,40 @@ The app will be available at `http://localhost:5173` with hot-reload enabled.
 
 ```
 src/
-├── assets/          # Global CSS (Tailwind entry point)
+├── assets/
+│   ├── main.css           # Tailwind CSS entry point
+│   └── subject/           # Real Bac II exam PDFs (2019, 2021, 2022, 2023, 2025)
 ├── components/
-│   ├── layout/      # TopNav (desktop) and BottomNav (mobile)
-│   ├── shared/      # Reusable components (PrimaryButton)
-│   └── tutor/       # Pattern and practice components (PatternCard, QuestionCard, WarningAlert)
-├── router/          # Vue Router configuration
-├── services/        # Firebase initialisation, Auth, and Database helpers
-└── views/           # Page components
-    ├── HomeView.vue       # Subject selection and progress overview
-    ├── PatternView.vue    # Failure pattern list for a subject
-    ├── PracticeView.vue   # Step-by-step pattern practice (Warning → Mistake → Correct)
-    ├── AiTutorView.vue    # AI chat interface
-    └── ProgressView.vue   # Study streak, stats, and weak areas
+│   ├── layout/            # SideNav (desktop) and BottomNav (mobile)
+│   ├── shared/            # Reusable components (PrimaryButton)
+│   └── tutor/             # PatternCard, QuestionCard, WarningAlert
+├── composables/
+│   └── useAuth.js         # Shared reactive auth state (module-level, no Pinia)
+├── data/
+│   └── mathPatterns.js    # 30 Math failure patterns derived from real exam PDFs
+├── router/
+│   └── index.js           # Routes including auth guards and dev-only /dev/seed
+├── services/
+│   ├── firebase.js        # Firebase app initialisation
+│   ├── auth.js            # register, login, signOut helpers
+│   ├── db.js              # Cloud Firestore instance
+│   └── patterns.js        # fetchPatterns, fetchPatternById, seedPatterns
+└── views/
+    ├── HomeView.vue        # Subject selection and progress overview
+    ├── PatternView.vue     # Failure pattern list for a subject (reads from Firestore)
+    ├── PracticeView.vue    # Step-by-step practice: Warning → Mistake → Correct
+    ├── LoginView.vue       # Firebase email/password login
+    ├── RegisterView.vue    # Firebase user registration
+    ├── AiTutorView.vue     # AI chat interface (planned)
+    ├── ProgressView.vue    # Study stats and weak areas (planned)
+    └── DevSeedView.vue     # Dev-only: seed Firestore from mathPatterns.js
 ```
+
+---
+
+## Seeding the database (development only)
+
+After cloning and configuring Firebase, visit `http://localhost:5173/dev/seed` to push all 30 Math patterns to Cloud Firestore. This route is only available in development (`import.meta.env.DEV`).
 
 ---
 
