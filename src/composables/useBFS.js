@@ -36,5 +36,6 @@ export function bfsRelatedPatterns(startId, graph, allPatterns, maxHops = 1) {
     }
   }
 
-  return allPatterns.filter(p => relatedIds.includes(p.id))
+  const patternMap = new Map(allPatterns.map(p => [p.id, p]))
+  return relatedIds.map(id => patternMap.get(id)).filter(Boolean)
 }

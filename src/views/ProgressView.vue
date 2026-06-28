@@ -29,29 +29,29 @@
         <!-- Streak card -->
         <div class="bg-orange-400 rounded-2xl px-6 py-7 text-white flex flex-col items-center justify-center text-center md:w-48 shrink-0">
           <span class="text-5xl mb-2" aria-hidden="true">🔥</span>
-          <p class="text-3xl font-black leading-none mb-1">7 days</p>
+          <p class="text-3xl font-black leading-none mb-1">{{ streakDays }} {{ streakDays === 1 ? 'day' : 'days' }}</p>
           <p class="text-orange-100 text-xs font-semibold">Study streak — keep it up!</p>
         </div>
 
         <!-- 4 stat boxes -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 flex-grow">
           <div class="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col">
-            <div class="text-3xl font-black text-slate-900 mb-1">12</div>
+            <div class="text-3xl font-black text-slate-900 mb-1">{{ masteredCount }}</div>
             <p class="text-slate-400 text-xs font-medium mb-3 flex-grow">Patterns mastered</p>
-            <p class="text-emerald-500 text-xs font-bold">+3 this week</p>
+            <p class="text-emerald-500 text-xs font-bold">+{{ masteredThisWeek }} this week</p>
           </div>
           <div class="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col">
-            <div class="text-3xl font-black text-emerald-500 mb-1">84%</div>
+            <div class="text-3xl font-black text-emerald-500 mb-1">{{ predictedScore }}%</div>
             <p class="text-slate-400 text-xs font-medium mb-3 flex-grow">Predicted score</p>
-            <p class="text-emerald-500 text-xs font-bold">+5% this week</p>
+            <p class="text-emerald-500 text-xs font-bold">+{{ predictedScoreDiff }}% this week</p>
           </div>
           <div class="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col">
-            <div class="text-3xl font-black text-slate-900 mb-1">18</div>
+            <div class="text-3xl font-black text-slate-900 mb-1">{{ patternsRemaining }}</div>
             <p class="text-slate-400 text-xs font-medium mb-3 flex-grow">Patterns remaining</p>
             <p class="text-orange-500 text-xs font-bold">Focus on Math</p>
           </div>
           <div class="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col">
-            <div class="text-3xl font-black text-slate-900 mb-1">−9</div>
+            <div class="text-3xl font-black text-slate-900 mb-1">+{{ marksSaved }}</div>
             <p class="text-slate-400 text-xs font-medium mb-3 flex-grow">Marks saved so far</p>
             <p class="text-red-400 text-xs font-bold">vs. before PreLearn</p>
           </div>
@@ -90,12 +90,103 @@
 </template>
 
 <script setup>
+import { computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+import { useProgress } from '@/composables/useProgress'
+import { mathPatterns } from '@/data/mathPatterns'
 
-const weakAreas = [
-  { name: 'Integration — missing +C',  marks: '−1 mark risk', dotClass: 'bg-red-500'    },
-  { name: 'Logarithm domain check',    marks: '−2 mark risk', dotClass: 'bg-orange-400' },
-  { name: 'Chain vs product rule',     marks: '−3 mark risk', dotClass: 'bg-orange-400' },
-  { name: 'Inequality sign flip',      marks: '−2 mark risk', dotClass: 'bg-slate-300'  }
-]
+const { user } = useAuth()
+const { masteredIds, progressDates, loadProgress } = useProgress()
+
+watch(user, async (u) => {
+  await loadProgress(u?.uid)
+}, { immediate: true })
+
+const parseMarks = (str) => {
+  const m = str?.match(/(\d+)/)
+  return m ? parseInt(m[1]) : 1
+}
+
+// 1. Streak Calculation
+const streakDays = computed(() => {
+  const dates = Array.from(progressDates.value.values())
+  if (!dates.length) return 0
+
+  const pad = (n) => String(n).padStart(2, '0')
+  const toLocalDateStr = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+
+  const uniqueDays = new Set(dates.map(toLocalDateStr))
+  const todayStr = toLocalDateStr(new Date())
+  const yesterday = new Date(Date.now() - 86400000)
+  const yesterdayStr = toLocalDateStr(yesterday)
+
+  if (!uniqueDays.has(todayStr) && !uniqueDays.has(yesterdayStr)) {
+    return 0
+  }
+
+  let streak = 0
+  let currentCheck = uniqueDays.has(todayStr) ? new Date() : yesterday
+
+  while (true) {
+    const checkStr = toLocalDateStr(currentCheck)
+    if (uniqueDays.has(checkStr)) {
+      streak++
+      currentCheck.setDate(currentCheck.getDate() - 1)
+    } else {
+      break
+    }
+  }
+  return streak
+})
+
+// 2. Patterns Mastered
+const masteredCount = computed(() => masteredIds.value.size)
+
+const masteredThisWeek = computed(() => {
+  const sevenDaysAgo = Date.now() - 7 * 86400000
+  return Array.from(progressDates.value.values()).filter(d => d.getTime() >= sevenDaysAgo).length
+})
+
+// 3. Predicted Score
+const predictedScore = computed(() => Math.round(50 + (masteredCount.value / 30) * 50))
+
+const predictedScoreDiff = computed(() => {
+  const countBeforeThisWeek = Math.max(0, masteredCount.value - masteredThisWeek.value)
+  const scoreBeforeThisWeek = Math.round(50 + (countBeforeThisWeek / 30) * 50)
+  return predictedScore.value - scoreBeforeThisWeek
+})
+
+// 4. Patterns Remaining
+const patternsRemaining = computed(() => Math.max(0, 30 - masteredCount.value))
+
+// 5. Marks Saved
+const marksSaved = computed(() => {
+  let total = 0
+  mathPatterns.forEach(p => {
+    if (masteredIds.value.has(p.id)) {
+      total += parseMarks(p.marks)
+    }
+  })
+  return total
+})
+
+// 6. Weak Areas
+const weakAreas = computed(() => {
+  const unmastered = mathPatterns.filter(p => !masteredIds.value.has(p.id))
+  // Sort descending by marks at risk
+  const sorted = [...unmastered].sort((a, b) => parseMarks(b.marks) - parseMarks(a.marks))
+  
+  const riskColorMap = {
+    high: 'bg-red-500',
+    medium: 'bg-orange-400',
+    low: 'bg-slate-300'
+  }
+
+  return sorted.slice(0, 4).map(p => ({
+    name: `${p.subject} — ${p.title}`,
+    marks: `−${parseMarks(p.marks)} mark risk`,
+    dotClass: riskColorMap[p.riskLevel] || 'bg-slate-300'
+  }))
+})
 </script>

@@ -151,7 +151,7 @@ const subjectLabel = computed(() => {
 onMounted(async () => {
   try {
     allPatterns.value = await fetchPatterns(subject.value)
-  } catch (e) {
+  } catch {
     error.value = 'Could not load patterns. Please try again.'
   } finally {
     loading.value = false

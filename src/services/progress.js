@@ -9,5 +9,11 @@ export const markPatternMastered = async (uid, patternId) => {
 
 export const fetchMasteredPatterns = async (uid) => {
   const snap = await getDocs(collection(db, 'users', uid, 'progress'))
-  return new Set(snap.docs.map(d => d.id))
+  const progressMap = new Map()
+  snap.docs.forEach(d => {
+    const data = d.data()
+    const date = data.masteredAt ? data.masteredAt.toDate() : new Date()
+    progressMap.set(d.id, date)
+  })
+  return progressMap
 }

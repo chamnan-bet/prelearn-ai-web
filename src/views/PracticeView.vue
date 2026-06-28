@@ -268,7 +268,7 @@ const loadPattern = async (id) => {
   try {
     pattern.value = await fetchPatternById(subject.value, id)
     if (!pattern.value) error.value = 'Pattern not found.'
-  } catch (e) {
+  } catch {
     error.value = 'Could not load this pattern. Please try again.'
   } finally {
     loading.value = false
