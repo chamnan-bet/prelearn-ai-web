@@ -116,3 +116,85 @@ The graph structure (src/data/patternGraph.js):
      or overlapping exam skill (e.g. p004 L'Hôpital ↔ p029 ODE char eq,
      because both require understanding derivatives)
    - BFS runs client-side in O(V+E) time — always instant, no API call needed
+
+# 29-06-2026
+
+── Latest updates: making the project more genuinely AI ─────────────────────
+
+Two upgrades were implemented to strengthen the AI credibility of the project.
+
+
+UPGRADE 1 — Dynamic Greedy (data now comes from Firestore, not static files)
+─────────────────────────────────────────────────────────────────────────────
+
+Problem before:
+  Greedy read from static mathPatterns.js. The weights never changed.
+  Anyone could argue "this is just sorting hardcoded data, not AI."
+
+What changed:
+  1. src/services/patterns.js
+     - seedPatterns() now writes masteredCount: 0 to each Firestore pattern doc
+     - New incrementMasteredCount() uses Firestore atomic increment(1)
+
+  2. src/composables/useProgress.js
+     - markMastered() now calls incrementMasteredCount() after saving user progress
+     - Every mastery event from any user bumps the global counter in Firestore
+
+  3. src/composables/useGreedy.js
+     - Added masteredCount as a tiebreaker in the sort
+     - Primary: higher marksAtRisk → study first (same as before)
+     - Tiebreaker: lower masteredCount → fewer users mastered it → still hard → higher priority
+     - The recommendation now reflects real-world difficulty across all users
+
+  4. src/views/HomeView.vue
+     - Fetches live pattern data from Firestore on mount (includes masteredCount)
+     - Greedy uses Firestore data; falls back to static mathPatterns.js while loading
+     - Recommendation card is instant on first render, updates after Firestore loads
+
+Why this matters:
+  Greedy's weights are no longer hardcoded. They adapt as real students use the app.
+  A pattern many users have mastered → lower priority. Still struggling → higher priority.
+  This is a simple adaptive recommendation system driven by real user behaviour.
+
+Action required:
+  Re-run /dev/seed to add masteredCount: 0 to existing Firestore documents.
+  Without this, incrementMasteredCount will fail on patterns missing the field.
+
+
+UPGRADE 2 — Dijkstra: "Study Path" page (new AI algorithm)
+───────────────────────────────────────────────────────────
+
+Problem before:
+  Greedy and BFS were both weak AI claims. Greedy just sorted. BFS just queried
+  a hardcoded graph. No real optimization was happening.
+
+What was built:
+  1. src/composables/useDijkstra.js (new file)
+     - Weighted shortest path through the pattern graph
+     - Cost function: cost(pattern) = 4 − marksAtRisk
+       High marks at risk → low cost → Dijkstra visits it first
+     - Edge relaxation: if visiting pattern A reveals a cheaper path to neighbor B,
+       update B's distance — this pulls connected high-risk patterns forward together
+     - Output: ordered array of patterns = optimal study sequence
+     - Time complexity: O(V²) with linear scan — fine for V ≤ 30
+
+  2. src/views/StudyPathView.vue (new file)
+     - New page at /study-path
+     - Numbered list of all unmastered patterns in Dijkstra order
+     - First pattern highlighted "Start here"
+     - Mastered patterns shown with ✓ and greyed out
+     - Each row links to that pattern's practice page
+
+  3. src/router/index.js
+     - Added route: /study-path → StudyPathView
+
+  4. src/views/HomeView.vue
+     - Added "View study path" link next to "View failure patterns" button
+
+How Dijkstra differs from Greedy:
+  Greedy: always picks the single highest-risk pattern, ignores connections
+  Dijkstra: finds the minimum-cost PATH through the graph, so patterns
+  connected to high-risk nodes get pulled forward as a cluster.
+  Example: p012 (ln domain, medium risk) is connected to p007 (domain, high risk).
+  Dijkstra may pull p012 forward after visiting p007 via edge relaxation.
+  Greedy would leave p012 until all high-risk patterns are done.

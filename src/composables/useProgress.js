@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { fetchMasteredPatterns, markPatternMastered } from '@/services/progress'
+import { incrementMasteredCount } from '@/services/patterns'
 
 // Module-level — shared across all components (same pattern as useAuth)
 const masteredIds = ref(new Set())
@@ -20,6 +21,7 @@ export function useProgress() {
   const markMastered = async (uid, patternId) => {
     if (!uid) return
     await markPatternMastered(uid, patternId)
+    await incrementMasteredCount('math', patternId)
     // Optimistic update — no need to re-fetch
     masteredIds.value = new Set([...masteredIds.value, patternId])
     

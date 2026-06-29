@@ -15,8 +15,12 @@ export function greedyNextPattern(patterns, masteredIds) {
   const unmastered = patterns.filter(p => !masteredIds.has(p.id))
   if (!unmastered.length) return null
 
-  // Sort descending by marks at risk — greedily pick the highest impact first
-  return [...unmastered].sort(
-    (a, b) => parseMarks(b.marks) - parseMarks(a.marks)
-  )[0]
+  return [...unmastered].sort((a, b) => {
+    // Primary: higher marks at risk → study first
+    const marksDiff = parseMarks(b.marks) - parseMarks(a.marks)
+    if (marksDiff !== 0) return marksDiff
+    // Tiebreaker: fewer global masteries → still hard for most users → higher priority
+    // masteredCount comes from Firestore when available, otherwise 0
+    return (a.masteredCount ?? 0) - (b.masteredCount ?? 0)
+  })[0]
 }

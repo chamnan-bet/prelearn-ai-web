@@ -126,9 +126,15 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
           </svg>
         </button>
-        <button class="font-semibold text-slate-600 hover:text-slate-900 transition text-sm">
-          View full schedule
-        </button>
+        <RouterLink
+          to="/study-path"
+          class="inline-flex items-center gap-2 font-semibold text-slate-600 hover:text-slate-900 transition text-sm"
+        >
+          View study path
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+        </RouterLink>
       </div>
 
     </main>
@@ -136,25 +142,37 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useProgress } from '@/composables/useProgress'
 import { greedyNextPattern } from '@/composables/useGreedy'
 import { mathPatterns } from '@/data/mathPatterns'
+import { fetchPatterns } from '@/services/patterns'
 
 const router = useRouter()
 const { user } = useAuth()
 const { masteredIds, loadProgress } = useProgress()
 
+// Fetch live pattern data from Firestore (includes masteredCount for dynamic Greedy)
+const firestorePatterns = ref([])
+onMounted(async () => {
+  firestorePatterns.value = await fetchPatterns('math')
+})
+
 watch(user, async (u) => {
   await loadProgress(u?.uid)
 }, { immediate: true })
 
+// Use Firestore patterns when loaded (live masteredCount), fallback to static while loading
+const activePatterns = computed(() =>
+  firestorePatterns.value.length ? firestorePatterns.value : mathPatterns
+)
+
 const masteredCount = computed(() => masteredIds.value.size)
 const predictedScore = computed(() => Math.round(50 + (masteredCount.value / 30) * 50))
 const progressPercent = computed(() => Math.round((masteredCount.value / 30) * 100))
-const nextPattern = computed(() => greedyNextPattern(mathPatterns, masteredIds.value))
+const nextPattern = computed(() => greedyNextPattern(activePatterns.value, masteredIds.value))
 
 const goToPatterns = (subjectId) => {
   router.push({ name: 'patterns', params: { subject: subjectId } })
