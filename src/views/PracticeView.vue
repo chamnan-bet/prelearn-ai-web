@@ -1,24 +1,323 @@
 <template>
-  <div class="container mx-auto p-4 max-w-4xl">
-    <h1 class="text-2xl font-bold mb-6 text-gray-800">Practice: {{ $route.params.subject }}</h1>
-    
-    <WarningAlert>
-      <strong>AI Note:</strong> Many students confuse integration and derivation here. Double-check your formula!
-    </WarningAlert>
+  <div class="flex flex-col min-h-full">
 
-    <QuestionCard 
-      title="Problem 1" 
-      question="Calculate the derivative of x² with respect to x."
-    >
-      <div class="mt-4">
-        <input type="text" class="border border-gray-300 p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type your answer here..." />
+    <!-- Page header -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shrink-0">
+      <div class="flex items-center gap-5 min-w-0">
+        <RouterLink
+          :to="{ name: 'patterns', params: { subject } }"
+          class="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 text-sm font-semibold transition shrink-0"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+          </svg>
+          Back
+        </RouterLink>
+
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="font-bold text-slate-900 text-lg leading-tight">{{ pattern?.subject }}</h1>
+            <span class="bg-red-50 text-red-600 border border-red-100 text-xs font-bold px-2.5 py-0.5 rounded-full shrink-0">
+              {{ pattern?.risk }}
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Pattern #{{ pattern?.order }} of 30</p>
+        </div>
       </div>
-    </QuestionCard>
-  </div>
+
+      <button class="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-400 hover:bg-amber-100 transition shrink-0 ml-4" aria-label="Notifications">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+          <path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0 1 13.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 0 1-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 1 1-7.48 0 24.585 24.585 0 0 1-4.831-1.244.75.75 0 0 1-.298-1.205A8.217 8.217 0 0 0 5.25 9.75V9Zm4.502 8.9a2.25 2.25 0 1 0 4.496 0 25.057 25.057 0 0 1-4.496 0Z" clip-rule="evenodd" />
+        </svg>
+      </button>
+    </header>
+
+    <!-- Practice card -->
+    <div class="p-6 flex-grow">
+
+      <!-- Loading -->
+      <div v-if="loading" class="bg-white rounded-2xl border border-slate-200 shadow-sm w-full h-64 animate-pulse"></div>
+
+      <!-- Error -->
+      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-xl px-5 py-4 text-sm text-red-700 font-semibold">
+        {{ error }}
+      </div>
+
+      <div v-else class="bg-white rounded-2xl border border-slate-200 shadow-sm w-full">
+
+        <!-- Tab bar -->
+        <div class="flex border-b border-slate-100" role="tablist">
+          <button
+            v-for="tab in tabs"
+            :key="tab.key"
+            role="tab"
+            :aria-selected="activeTab === tab.key"
+            :class="[
+              'flex items-center gap-2 px-6 py-4 text-sm font-semibold border-b-2 -mb-px transition flex-1 justify-center',
+              activeTab === tab.key
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-400 hover:text-slate-600'
+            ]"
+            @click="activeTab = tab.key"
+          >
+            <component :is="tab.icon" class="w-4 h-4" aria-hidden="true" />
+            {{ tab.label }}
+          </button>
+        </div>
+
+        <!-- Warning panel -->
+        <div v-show="activeTab === 'warning'" class="p-6" role="tabpanel">
+          <p class="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-1">
+            Pattern #{{ pattern.id }} — before you solve
+          </p>
+          <h2 class="text-xl font-extrabold text-slate-900 mb-3">{{ pattern.title }}</h2>
+          <p class="text-slate-500 text-sm leading-relaxed mb-5">{{ pattern.warningBody }}</p>
+
+          <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 text-sm text-amber-800 leading-relaxed">
+            <span class="font-bold">⚠️ Pre-warning:</span> {{ pattern.preWarning }}
+          </div>
+
+          <div class="mb-6">
+            <p class="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-2">The question</p>
+            <p class="text-xl font-bold text-slate-900 mb-1">{{ pattern.question }}</p>
+            <p class="text-sm text-slate-400">{{ pattern.questionHint }}</p>
+          </div>
+
+          <!-- Step dots -->
+          <div class="flex justify-center gap-2 mb-5" aria-hidden="true">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-200"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-200"></span>
+          </div>
+
+          <button
+            class="w-full bg-blue-700 hover:bg-blue-800 active:scale-[0.99] text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2"
+            @click="activeTab = 'mistake'"
+          >
+            I understand — show the mistake
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Mistake panel -->
+        <div v-show="activeTab === 'mistake'" class="p-6" role="tabpanel">
+          <p class="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-1">Step 2 — the mistake</p>
+          <h2 class="text-xl font-extrabold text-slate-900 mb-5">What failing students write</h2>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 font-mono text-sm leading-8 mb-4">
+            <div v-for="(line, i) in pattern.mistakeLines" :key="i" class="flex items-baseline gap-3">
+              <span :class="line.wrong ? 'text-red-500' : 'text-slate-700'">{{ line.text }}</span>
+              <span v-if="line.annotation" class="text-red-400 font-sans text-xs italic">{{ line.annotation }}</span>
+            </div>
+          </div>
+
+          <div class="bg-red-50 border border-red-200 rounded-xl px-5 py-3 flex items-center gap-3 text-sm text-red-700 mb-6">
+            <span class="font-bold shrink-0">✗</span>
+            {{ pattern.mistakeExplanation }}
+          </div>
+
+          <!-- Step dots -->
+          <div class="flex justify-center gap-2 mb-5" aria-hidden="true">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-200"></span>
+          </div>
+
+          <button
+            class="w-full bg-blue-700 hover:bg-blue-800 active:scale-[0.99] text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2"
+            @click="activeTab = 'correct'"
+          >
+            Show the correct answer
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Correct panel -->
+        <div v-show="activeTab === 'correct'" class="p-6" role="tabpanel">
+          <p class="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-1">Step 3 — correct solution</p>
+          <h2 class="text-xl font-extrabold text-slate-900 mb-5">Full marks answer</h2>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 font-mono text-sm leading-8 mb-4">
+            <div v-for="(line, i) in pattern.correctLines" :key="i">
+              <span :class="line.correct ? 'text-emerald-600 font-semibold' : 'text-slate-700'">{{ line.text }}</span>
+            </div>
+          </div>
+
+          <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-3 flex items-center gap-3 text-sm text-emerald-700 mb-6">
+            <span class="shrink-0">✅</span>
+            {{ pattern.correctExplanation }}
+          </div>
+
+          <!-- Step dots -->
+          <div class="flex justify-center gap-2 mb-5" aria-hidden="true">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-200"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-200"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+          </div>
+
+          <!-- Already mastered -->
+          <div v-if="isMasteredNow" class="bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-3 flex items-center justify-center gap-2 text-sm font-bold text-emerald-700 mb-3">
+            <span>✓</span> Mastered — great work!
+          </div>
+
+          <!-- Mark as Mastered (logged in, not yet mastered) -->
+          <button
+            v-else-if="user"
+            :disabled="mastering"
+            class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mb-3"
+            @click="handleMastered"
+          >
+            <span v-if="mastering">Saving…</span>
+            <span v-else>Mark as Mastered ✓</span>
+          </button>
+
+          <!-- Prompt to sign in (not logged in) -->
+          <RouterLink
+            v-else
+            to="/login"
+            class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-3.5 rounded-xl transition flex items-center justify-center gap-2 mb-3 text-sm"
+          >
+            Sign in to track your progress
+          </RouterLink>
+        </div>
+
+      </div>
+
+      <!-- Related Patterns (BFS) -->
+      <div v-if="!loading && relatedPatterns.length" class="mt-6">
+        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Related Patterns</p>
+        <div class="flex flex-col gap-3">
+          <button
+            v-for="p in relatedPatterns"
+            :key="p.id"
+            @click="goToPattern(p.id)"
+            class="bg-white border border-slate-200 rounded-xl px-5 py-4 flex items-center justify-between gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all text-left w-full"
+          >
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap mb-0.5">
+                <span
+                  class="text-xs font-bold"
+                  :class="p.riskLevel === 'high' ? 'text-red-500' : 'text-amber-500'"
+                >{{ p.risk }}</span>
+                <span class="text-xs text-slate-400">{{ p.marks }}</span>
+              </div>
+              <p class="font-semibold text-slate-900 text-sm leading-tight truncate">{{ p.title }}</p>
+              <p class="text-xs text-slate-400 mt-0.5">{{ p.subject }}</p>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-slate-400 shrink-0" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      </div>
+    </div>
 </template>
 
 <script setup>
-import WarningAlert from '@/components/tutor/WarningAlert.vue'
-import QuestionCard from '@/components/tutor/QuestionCard.vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, h, onMounted, watch } from 'vue'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { fetchPatternById } from '@/services/patterns'
+import { useAuth } from '@/composables/useAuth'
+import { useProgress } from '@/composables/useProgress'
+import { bfsRelatedPatterns } from '@/composables/useBFS'
+import { patternGraph } from '@/data/patternGraph'
+import { mathPatterns } from '@/data/mathPatterns'
+
+const route = useRoute()
+const router = useRouter()
+const { user } = useAuth()
+const { masteredIds, loadProgress, markMastered } = useProgress()
+
+const subject = computed(() => route.params.subject ?? 'math')
+const patternId = computed(() => route.query.patternId ?? 'p001')
+
+const pattern = ref(null)
+const loading = ref(true)
+const error = ref('')
+const activeTab = ref('warning')
+const mastering = ref(false)
+
+const isMasteredNow = computed(() => masteredIds.value.has(patternId.value))
+
+// BFS — direct neighbors of the current pattern in the graph
+const relatedPatterns = computed(() =>
+  bfsRelatedPatterns(patternId.value, patternGraph, mathPatterns)
+)
+
+const handleMastered = async () => {
+  if (!user.value || mastering.value) return
+  mastering.value = true
+  await markMastered(user.value.uid, patternId.value)
+  mastering.value = false
+}
+
+const goToPattern = (id) => {
+  router.push({ name: 'practice', params: { subject: subject.value }, query: { patternId: id } })
+}
+
+const loadPattern = async (id) => {
+  loading.value = true
+  error.value = ''
+  activeTab.value = 'warning'
+  try {
+    pattern.value = await fetchPatternById(subject.value, id)
+    if (!pattern.value) error.value = 'Pattern not found.'
+  } catch {
+    error.value = 'Could not load this pattern. Please try again.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => loadPattern(patternId.value))
+
+// Reload when user navigates to a related pattern
+watch(patternId, (newId) => loadPattern(newId))
+
+watch(user, async (u) => {
+  await loadProgress(u?.uid)
+}, { immediate: true })
+
+const tabs = [
+  {
+    key: 'warning',
+    label: 'Warning',
+    icon: {
+      render() {
+        return h('svg', { xmlns: 'http://www.w3.org/2000/svg', fill: 'none', viewBox: '0 0 24 24', 'stroke-width': '2', stroke: 'currentColor' },
+          [h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z' })]
+        )
+      }
+    }
+  },
+  {
+    key: 'mistake',
+    label: 'Mistake',
+    icon: {
+      render() {
+        return h('svg', { xmlns: 'http://www.w3.org/2000/svg', fill: 'none', viewBox: '0 0 24 24', 'stroke-width': '2', stroke: 'currentColor' },
+          [h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M6 18 18 6M6 6l12 12' })]
+        )
+      }
+    }
+  },
+  {
+    key: 'correct',
+    label: 'Correct',
+    icon: {
+      render() {
+        return h('svg', { xmlns: 'http://www.w3.org/2000/svg', fill: 'none', viewBox: '0 0 24 24', 'stroke-width': '2', stroke: 'currentColor' },
+          [h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M4.5 12.75l6 6 9-13.5' })]
+        )
+      }
+    }
+  }
+]
+
 </script>

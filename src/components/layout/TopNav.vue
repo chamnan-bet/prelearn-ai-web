@@ -14,7 +14,7 @@
         <RouterLink to="/patterns" active-class="text-indigo-600" class="hover:text-indigo-600 transition">
           Patterns
         </RouterLink>
-        <RouterLink to="/tutor" active-class="text-indigo-600" class="hover:text-indigo-600 transition">
+        <RouterLink to="/ai-tutor" active-class="text-indigo-600" class="hover:text-indigo-600 transition">
           AI Tutor
         </RouterLink>
         <RouterLink to="/progress" active-class="text-indigo-600" class="hover:text-indigo-600 transition">

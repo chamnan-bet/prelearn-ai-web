@@ -1,145 +1,191 @@
 <template>
+  <div class="flex flex-col min-h-full">
 
-  <main class="w-full max-w-[1280px] mx-auto px-4 py-8 flex-grow">
-    
-    <div class="mb-8 flex justify-between items-end">
+    <!-- Page header -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shrink-0">
       <div>
-        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Select Subject</h1>
-        <p class="text-slate-500 mt-1">Master the failure patterns before your Bac II exam.</p>
+        <p class="font-black text-slate-900 text-base leading-tight">PreLearn</p>
+        <p class="text-xs text-slate-400">Bac II exam preparation</p>
       </div>
-    </div>
+      <div class="flex items-center gap-2">
+        <RouterLink
+          v-if="!user"
+          to="/login"
+          class="md:hidden text-xs font-bold text-blue-700 hover:text-blue-800 transition px-3 py-1.5 rounded-xl border border-blue-200 hover:bg-blue-50"
+        >
+          Sign in
+        </RouterLink>
+        <button class="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-400 hover:bg-amber-100 transition" aria-label="Notifications">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+          <path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0 1 13.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 0 1-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 1 1-7.48 0 24.585 24.585 0 0 1-4.831-1.244.75.75 0 0 1-.298-1.205A8.217 8.217 0 0 0 5.25 9.75V9Zm4.502 8.9a2.25 2.25 0 1 0 4.496 0 25.057 25.057 0 0 1-4.496 0Z" clip-rule="evenodd" />
+        </svg>
+      </button>
+      </div>
+    </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-12">
-      
-      <div 
-        v-for="subject in bacIISubjects" 
-        :key="subject.id"
-        @click="goToPractice(subject.id)"
-        @keyup.enter="goToPractice(subject.id)"
-        tabindex="0"
-        class="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full relative overflow-hidden group outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-      >
-        <div class="absolute top-0 left-0 w-full h-1 bg-slate-200 group-hover:bg-indigo-500 transition-colors"></div>
+    <main class="p-6 flex-grow">
 
-        <div class="flex items-start justify-between mb-4">
-          <div :class="[subject.bgClass, subject.textClass, 'w-14 h-14 rounded-xl flex items-center justify-center text-3xl font-bold shadow-inner']">
+      <!-- Stats hero card -->
+      <div class="mb-7 bg-blue-700 rounded-2xl px-8 py-6 text-white">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-5">
+          <div>
+            <div class="flex items-baseline gap-1">
+              <span class="text-4xl font-black">{{ masteredCount }}</span>
+              <span class="text-blue-300 text-xl font-bold">/30</span>
+            </div>
+            <p class="text-blue-200 text-[10px] font-black uppercase tracking-widest mt-1">Patterns Mastered</p>
+          </div>
+          <div>
+            <div class="text-4xl font-black">{{ predictedScore }}%</div>
+            <p class="text-blue-200 text-[10px] font-black uppercase tracking-widest mt-1">Predicted Score</p>
+          </div>
+          <div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-4xl font-black">7</span>
+              <span class="text-xl">🔥</span>
+            </div>
+            <p class="text-blue-200 text-[10px] font-black uppercase tracking-widest mt-1">Day Streak</p>
+          </div>
+          <div>
+            <div class="text-4xl font-black">18</div>
+            <p class="text-blue-200 text-[10px] font-black uppercase tracking-widest mt-1">Days to Exam</p>
+          </div>
+        </div>
+        <div class="bg-blue-500/40 rounded-full h-2 overflow-hidden mb-2">
+          <div class="bg-white rounded-full h-2 transition-all duration-700" :style="{ width: progressPercent + '%' }"></div>
+        </div>
+        <p class="text-blue-300 text-xs">{{ progressPercent }}% overall progress</p>
+      </div>
+
+      <!-- Greedy recommendation card -->
+      <div v-if="nextPattern" class="mb-7">
+        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">AI Recommendation</p>
+        <div
+          class="bg-white border border-blue-200 rounded-2xl px-6 py-5 flex items-center justify-between gap-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
+          @click="goToPractice(nextPattern)"
+        >
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest">Study next</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" :class="nextPattern.riskLevel === 'high' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-amber-50 text-amber-600 border border-amber-100'">
+                {{ nextPattern.risk }}
+              </span>
+              <span class="text-[10px] font-bold text-slate-400">{{ nextPattern.marks }}</span>
+            </div>
+            <p class="font-bold text-slate-900 text-base leading-tight truncate">{{ nextPattern.title }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">{{ nextPattern.subject }}</p>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 text-blue-600 shrink-0" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+        </div>
+      </div>
+      <div v-else-if="masteredCount === 30" class="mb-7 bg-emerald-50 border border-emerald-200 rounded-2xl px-6 py-5 text-emerald-700 font-bold text-sm">
+        ✓ All 30 patterns mastered — you are exam ready!
+      </div>
+
+      <!-- Section label -->
+      <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Select Subject</p>
+
+      <!-- Subject cards grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+        <div
+          v-for="subject in subjects"
+          :key="subject.id"
+          tabindex="0"
+          role="button"
+          :aria-label="`Go to ${subject.name} patterns`"
+          @click="goToPatterns(subject.id)"
+          @keyup.enter="goToPatterns(subject.id)"
+          class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+          :class="{ 'border-blue-300 shadow-md': subject.id === 'math' }"
+        >
+          <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-2xl mb-3">
             {{ subject.icon }}
           </div>
-          <span v-if="subject.progress > 0" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">
-            {{ subject.progress }}%
-          </span>
-        </div>
-
-        <h3 class="text-2xl font-bold text-slate-900">{{ subject.name }}</h3>
-        <p class="text-base font-medium text-slate-500 mb-8">{{ subject.khmerName }}</p>
-
-        <div class="mt-auto">
-          <div class="flex justify-between text-sm font-semibold text-slate-500 mb-2">
-            <span>{{ subject.mastered }}/{{ subject.totalPatterns }} Patterns</span>
-          </div>
-          <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-            <div 
-              class="h-full rounded-full transition-all duration-1000" 
-              :class="subject.progress > 0 ? 'bg-indigo-600' : 'bg-slate-300'"
+          <p class="font-bold text-slate-900 text-base leading-tight">{{ subject.name }}</p>
+          <p class="text-xs text-slate-400 mb-3 mt-0.5">{{ subject.totalPatterns }} patterns</p>
+          <div class="h-1 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              class="h-full bg-blue-600 rounded-full transition-all duration-700"
               :style="{ width: `${subject.progress}%` }"
             ></div>
           </div>
+          <p v-if="subject.progress > 0" class="text-xs text-slate-400 mt-1">{{ subject.progress }}% complete</p>
         </div>
       </div>
 
-    </div>
+      <!-- CTA row -->
+      <div class="flex flex-wrap items-center gap-4">
+        <button
+          @click="goToPatterns('math')"
+          class="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 active:scale-[0.98] text-white font-bold px-6 py-3 rounded-xl transition"
+        >
+          View failure patterns
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+        </button>
+        <RouterLink
+          to="/study-path"
+          class="inline-flex items-center gap-2 font-semibold text-slate-600 hover:text-slate-900 transition text-sm"
+        >
+          View study path
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+        </RouterLink>
+      </div>
 
-  </main>
-  
+    </main>
+  </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter, RouterLink } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+import { useProgress } from '@/composables/useProgress'
+import { greedyNextPattern } from '@/composables/useGreedy'
+import { mathPatterns } from '@/data/mathPatterns'
+import { fetchPatterns } from '@/services/patterns'
 
 const router = useRouter()
-const goToPractice = (subjectId) => {
-  router.push({ name: 'practice', params: { subject: subjectId } })
+const { user } = useAuth()
+const { masteredIds, loadProgress } = useProgress()
+
+// Fetch live pattern data from Firestore (includes masteredCount for dynamic Greedy)
+const firestorePatterns = ref([])
+onMounted(async () => {
+  firestorePatterns.value = await fetchPatterns('math')
+})
+
+watch(user, async (u) => {
+  await loadProgress(u?.uid)
+}, { immediate: true })
+
+// Use Firestore patterns when loaded (live masteredCount), fallback to static while loading
+const activePatterns = computed(() =>
+  firestorePatterns.value.length ? firestorePatterns.value : mathPatterns
+)
+
+const masteredCount = computed(() => masteredIds.value.size)
+const predictedScore = computed(() => Math.round(50 + (masteredCount.value / 30) * 50))
+const progressPercent = computed(() => Math.round((masteredCount.value / 30) * 100))
+const nextPattern = computed(() => greedyNextPattern(activePatterns.value, masteredIds.value))
+
+const goToPatterns = (subjectId) => {
+  router.push({ name: 'patterns', params: { subject: subjectId } })
 }
 
-// This array acts as our temporary database until we hook up Firebase
-const bacIISubjects = ref([
-  { 
-    id: 'math', 
-    name: 'Mathematics', 
-    khmerName: 'គណិតវិទ្យា', 
-    icon: '📐', 
-    progress: 84, 
-    mastered: 12, 
-    totalPatterns: 30,
-    bgClass: 'bg-blue-100',
-    textClass: 'text-blue-600'
-  },
-  { 
-    id: 'physics', 
-    name: 'Physics', 
-    khmerName: 'រូបវិទ្យា', 
-    icon: '⚛️', 
-    progress: 45, 
-    mastered: 10, 
-    totalPatterns: 22,
-    bgClass: 'bg-amber-100',
-    textClass: 'text-amber-600'
-  },
-  { 
-    id: 'chemistry', 
-    name: 'Chemistry', 
-    khmerName: 'គីមីវិទ្យា', 
-    icon: '🧪', 
-    progress: 20, 
-    mastered: 4, 
-    totalPatterns: 18,
-    bgClass: 'bg-emerald-100',
-    textClass: 'text-emerald-600'
-  },
-  { 
-    id: 'biology', 
-    name: 'Biology', 
-    khmerName: 'ជីវវិទ្យា', 
-    icon: '🧬', 
-    progress: 0, 
-    mastered: 0, 
-    totalPatterns: 15,
-    bgClass: 'bg-rose-100',
-    textClass: 'text-rose-600'
-  },
-  { 
-    id: 'khmer', 
-    name: 'Khmer', 
-    khmerName: 'អក្សរសាស្ត្រខ្មែរ', 
-    icon: '🇰🇭', 
-    progress: 15, 
-    mastered: 2, 
-    totalPatterns: 20,
-    bgClass: 'bg-cyan-100',
-    textClass: 'text-cyan-600'
-  },
-  { 
-    id: 'history', 
-    name: 'History', 
-    khmerName: 'ប្រវត្តិវិទ្យា', 
-    icon: '📜', 
-    progress: 0, 
-    mastered: 0, 
-    totalPatterns: 12,
-    bgClass: 'bg-stone-100',
-    textClass: 'text-stone-600'
-  },
-  { 
-    id: 'english', 
-    name: 'English', 
-    khmerName: 'ភាសាអង់គ្លេស', 
-    icon: '🇬🇧', 
-    progress: 60, 
-    mastered: 15, 
-    totalPatterns: 25,
-    bgClass: 'bg-teal-100',
-    textClass: 'text-teal-600'
-  }
+const goToPractice = (pattern) => {
+  router.push({ name: 'practice', params: { subject: 'math' }, query: { patternId: pattern.id } })
+}
+
+const subjects = ref([
+  { id: 'math',      name: 'Mathematics', icon: '📐', progress: 40, totalPatterns: 30 },
+  { id: 'physics',   name: 'Physics',     icon: '⚛️', progress: 20, totalPatterns: 22 },
+  { id: 'chemistry', name: 'Chemistry',   icon: '🧪', progress: 10, totalPatterns: 18 },
+  { id: 'biology',   name: 'Biology',     icon: '🧬', progress: 0,  totalPatterns: 15 }
 ])
 </script>
