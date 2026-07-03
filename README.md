@@ -2,6 +2,19 @@
 
 An AI-powered exam preparation web app for Cambodian **Bac II** students. PreLearn.ai identifies the failure patterns students repeat most often — across Mathematics, Physics, Chemistry, Biology, Khmer, History, and English — and trains them to stop making those mistakes before the exam.
 
+**Team members:** Bet Chamnan · Chhen Vichheka · Yoem SreyYoeur
+
+---
+
+## Live demo & test credentials
+
+- **Deployment link:** _TODO — not yet deployed, see [Deploying](#deploying) below_
+- **Test account:**
+  - Email: `chamnan@gmail.com`
+  - Password: `12345678`
+
+Logging in is only required to save personalised progress. All subject dashboards, failure pattern libraries, and practice flows can be browsed without an account.
+
 ---
 
 ## Features
@@ -9,8 +22,18 @@ An AI-powered exam preparation web app for Cambodian **Bac II** students. PreLea
 - **Subject dashboard** — track progress across all 7 Bac II subjects with mastery scores and a predicted exam score
 - **Failure pattern library** — browse high-risk and medium-risk patterns per subject, ranked by average mark loss
 - **Step-by-step practice** — each pattern walks through the common mistake, then the correct solution across three guided tabs (Warning → Mistake → Correct)
-- **AI Tutor chat** — ask follow-up questions about any pattern and get explanations in plain language
+- **AI Tutor chat** — ask follow-up questions about any pattern and get explanations in plain language. _Current build uses scripted/rule-based responses modeled on the intended AI flow rather than a live LLM call — see [AI functionality status](#ai-functionality-status)._
 - **Progress tracking** — view study streak, patterns mastered, predicted score, and a prioritised weak-areas list
+
+---
+
+## AI functionality status
+
+PreLearn.ai's core design is built around AI-driven failure-pattern warnings. In the current build:
+
+- The 30 Math failure patterns, their warning strategy, and the Warning → Mistake → Correct practice flow are curated content stored in Firestore/`mathPatterns.js`, not generated live by a model.
+- A live model integration has been built (Firebase Cloud Function proxying the Claude API — see [`docs/ai-integration.md`](docs/ai-integration.md) for the full architecture and how to swap/add providers like Gemini) but has not yet been deployed/verified end-to-end. Until confirmed working, treat the AI Tutor as scripted.
+- Deploy steps: `firebase functions:secrets:set ANTHROPIC_API_KEY`, then `firebase deploy --only functions` (requires the Blaze plan).
 
 ---
 
@@ -94,6 +117,22 @@ The app will be available at `http://localhost:5173` with hot-reload enabled.
 
 ---
 
+## Deploying
+
+The project is configured for **Firebase Hosting** (`firebase.json` serves `dist/`), but no Firebase project has been linked yet (`.firebaserc` is missing) and it has not been deployed. To deploy:
+
+```sh
+npm install -g firebase-tools   # if not already installed
+firebase login
+firebase use --add              # link this folder to your Firebase project
+npm run build                   # outputs to dist/
+firebase deploy --only hosting
+```
+
+After deploying, update the **Deployment link** above and `Deployment_Link.txt` in the submission zip with the resulting `https://<project-id>.web.app` URL.
+
+---
+
 ## Project structure
 
 ```
@@ -110,7 +149,7 @@ src/
 ├── data/
 │   └── mathPatterns.js    # 30 Math failure patterns derived from real exam PDFs
 ├── router/
-│   └── index.js           # Routes including auth guards and dev-only /dev/seed
+│   └── index.js           # Routes (login/register optional) plus dev-only /dev/seed
 ├── services/
 │   ├── firebase.js        # Firebase app initialisation
 │   ├── auth.js            # register, login, signOut helpers

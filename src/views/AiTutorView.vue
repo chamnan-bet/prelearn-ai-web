@@ -80,10 +80,29 @@
               </div>
             </div>
           </div>
+
+          <!-- Error banner -->
+          <p v-if="errorText" class="text-sm text-red-600 px-1" role="alert">{{ errorText }}</p>
+        </div>
+
+        <!-- Auth still resolving -->
+        <div v-if="!authReady" class="border-t border-slate-100 p-5 shrink-0 text-center">
+          <p class="text-sm text-slate-400">Loading…</p>
+        </div>
+
+        <!-- Sign-in gate -->
+        <div v-else-if="!user" class="border-t border-slate-100 p-5 shrink-0 text-center">
+          <p class="text-sm text-slate-500 mb-3">Sign in to chat with the AI Tutor.</p>
+          <RouterLink
+            to="/login"
+            class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold transition-colors"
+          >
+            Sign in
+          </RouterLink>
         </div>
 
         <!-- Input bar (anchored to card bottom) -->
-        <div class="border-t border-slate-100 p-4 shrink-0">
+        <div v-else class="border-t border-slate-100 p-4 shrink-0">
           <form @submit.prevent="sendMessage" class="flex gap-3 items-center">
             <input
               v-model="input"
@@ -113,67 +132,88 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
+import { fetchPatternById } from '@/services/patterns'
+import { askAiTutor } from '@/services/aiTutor'
+import { useAuth } from '@/composables/useAuth'
 
 const route = useRoute()
+const { user, authReady } = useAuth()
 
 const subject = computed(() => route.query.subject ?? route.params?.subject ?? 'math')
-const patternId = computed(() => Number(route.query.patternId ?? 1))
+const patternId = computed(() => route.query.patternId ?? null)
 
-const patternTitles = {
-  1: 'Quadratic equations',
-  2: 'Skipping algebra steps',
-  3: 'Forgetting +C in integration',
-  4: 'Wrong domain for ln(x)'
-}
-const patternTitle = computed(() => patternTitles[patternId.value] ?? 'Failure pattern')
+const pattern = ref(null)
+const patternTitle = computed(() => pattern.value?.title ?? 'General AI Tutor')
 
 const input = ref('')
 const isTyping = ref(false)
+const errorText = ref('')
 const messagesEl = ref(null)
 
-const messages = ref([
-  {
-    id: 1,
-    role: 'ai',
-    text: '⚠️ Before we start: For any equation with x², always expect TWO solutions. This is the most common Bac II mistake in this topic. Keep this in mind as we go.'
+const messages = ref([])
+let nextId = 1
+
+function welcomeMessage() {
+  if (pattern.value?.preWarning) {
+    return `⚠️ ${pattern.value.preWarning}`
   }
-])
+  return "Ask me about any Bac II Math failure pattern — I'll flag the common trap before walking through the correct approach."
+}
 
-let nextId = 2
+async function loadPattern() {
+  if (!patternId.value) return
+  try {
+    pattern.value = await fetchPatternById(subject.value, patternId.value)
+  } catch {
+    pattern.value = null
+  }
+}
 
-const cannedReplies = [
-  'Great question! Most students solve step-by-step and stop the moment they find one answer… But x² always has two cases: the expression inside equals +√ OR −√. Both must be checked.',
-  'Think of it this way: √4 gives you both 2 and −2. The square root operation always opens two doors. Students who only open one lose 3 marks on average in the Bac II exam.',
-  'Here is a rule to memorise: whenever you take a square root in an equation, write ±√ immediately — not just +√. That one character change will save you marks every time.',
-  'Exactly right. The key step is writing x − 3 = ±2 (notice the ± sign). From there: x = 5 or x = 1. Never skip the ± — that is where the marks live.',
-  'Good thinking. The exam marker is looking for both values explicitly written. Even if your arithmetic is correct, showing only one root is marked as an incomplete answer.'
-]
-let replyIndex = 0
+function resetConversation() {
+  messages.value = [{ id: nextId++, role: 'ai', text: welcomeMessage() }]
+}
+
+onMounted(async () => {
+  await loadPattern()
+  resetConversation()
+})
+
+watch(patternId, async () => {
+  await loadPattern()
+  resetConversation()
+})
+
+function buildPatternContext() {
+  if (!pattern.value) return null
+  const { title, description, warningBody, mistakeExplanation, correctExplanation } = pattern.value
+  return { title, description, warningBody, mistakeExplanation, correctExplanation }
+}
 
 async function sendMessage() {
   const text = input.value.trim()
-  if (!text || isTyping.value) return
+  if (!text || isTyping.value || !user.value) return
 
   messages.value.push({ id: nextId++, role: 'user', text })
   input.value = ''
+  errorText.value = ''
   isTyping.value = true
 
   await nextTick()
   scrollToBottom()
 
-  setTimeout(async () => {
-    messages.value.push({
-      id: nextId++,
-      role: 'ai',
-      text: cannedReplies[replyIndex % cannedReplies.length]
-    })
-    replyIndex++
+  try {
+    const history = messages.value.slice(0, -1).map((m) => ({ role: m.role, text: m.text }))
+    const reply = await askAiTutor({ question: text, patternContext: buildPatternContext(), history })
+    messages.value.push({ id: nextId++, role: 'ai', text: reply })
+  } catch {
+    errorText.value = 'The AI Tutor is unavailable right now. Please try again.'
+  } finally {
     isTyping.value = false
     await nextTick()
     scrollToBottom()
-  }, 1400)
+  }
 }
 
 function scrollToBottom() {

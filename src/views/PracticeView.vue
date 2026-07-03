@@ -183,6 +183,13 @@
           >
             Sign in to track your progress
           </RouterLink>
+
+          <RouterLink
+            :to="{ name: 'ai-tutor', query: { subject: subject, patternId: patternId } }"
+            class="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-3.5 rounded-xl transition flex items-center justify-center gap-2 text-sm"
+          >
+            Ask AI Tutor about this pattern
+          </RouterLink>
         </div>
 
       </div>
