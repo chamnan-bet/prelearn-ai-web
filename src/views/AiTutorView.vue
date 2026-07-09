@@ -177,7 +177,7 @@ const isTyping = ref(false)
 const errorText = ref('')
 const messagesEl = ref(null)
 
-const provider = ref(localStorage.getItem('aiTutorProvider') === 'gemini' ? 'gemini' : 'claude')
+const provider = ref(localStorage.getItem('aiTutorProvider') === 'claude' ? 'claude' : 'gemini')
 watch(provider, (value) => localStorage.setItem('aiTutorProvider', value))
 
 const messages = ref([])

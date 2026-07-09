@@ -80,7 +80,7 @@ exports.askAiTutor = onCall(
     }
 
     const { question, patternContext, history, provider } = request.data ?? {}
-    const selectedProvider = PROVIDERS.includes(provider) ? provider : 'claude'
+    const selectedProvider = PROVIDERS.includes(provider) ? provider : 'gemini'
 
     const cleanQuestion = truncate(question, MAX_MESSAGE_LENGTH).trim()
     if (!cleanQuestion) {
