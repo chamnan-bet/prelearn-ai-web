@@ -162,6 +162,7 @@ import { useRoute, RouterLink } from 'vue-router'
 import { fetchPatternById } from '@/services/patterns'
 import { askAiTutor } from '@/services/aiTutor'
 import { useAuth } from '@/composables/useAuth'
+import { useAiTutorChat } from '@/composables/useAiTutorChat'
 
 const route = useRoute()
 const { user, authReady } = useAuth()
@@ -183,6 +184,8 @@ watch(provider, (value) => localStorage.setItem('aiTutorProvider', value))
 const messages = ref([])
 let nextId = 1
 
+const conversationKey = computed(() => `${subject.value}:${patternId.value ?? 'general'}`)
+
 function welcomeMessage() {
   if (pattern.value?.preWarning) {
     return `⚠️ ${pattern.value.preWarning}`
@@ -199,18 +202,31 @@ async function loadPattern() {
   }
 }
 
-function resetConversation() {
+function persistMessages() {
+  useAiTutorChat(conversationKey.value).setMessages(messages.value)
+}
+
+function loadConversation() {
+  const saved = useAiTutorChat(conversationKey.value).getMessages()
+  if (saved && saved.length) {
+    messages.value = saved
+    nextId = saved.reduce((max, m) => Math.max(max, m.id), 0) + 1
+    return
+  }
+
+  nextId = 1
   messages.value = [{ id: nextId++, role: 'ai', text: welcomeMessage() }]
+  persistMessages()
 }
 
 onMounted(async () => {
   await loadPattern()
-  resetConversation()
+  loadConversation()
 })
 
 watch(patternId, async () => {
   await loadPattern()
-  resetConversation()
+  loadConversation()
 })
 
 function buildPatternContext() {
@@ -224,6 +240,7 @@ async function sendMessage() {
   if (!text || isTyping.value || !user.value) return
 
   messages.value.push({ id: nextId++, role: 'user', text })
+  persistMessages()
   input.value = ''
   errorText.value = ''
   isTyping.value = true
@@ -235,6 +252,7 @@ async function sendMessage() {
     const history = messages.value.slice(0, -1).map((m) => ({ role: m.role, text: m.text }))
     const reply = await askAiTutor({ question: text, patternContext: buildPatternContext(), history, provider: provider.value })
     messages.value.push({ id: nextId++, role: 'ai', text: reply })
+    persistMessages()
   } catch {
     errorText.value = 'The AI Tutor is unavailable right now. Please try again.'
   } finally {
