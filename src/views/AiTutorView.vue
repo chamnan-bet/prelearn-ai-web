@@ -27,11 +27,36 @@
         </div>
       </div>
 
-      <button class="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-400 hover:bg-amber-100 transition shrink-0 ml-4" aria-label="Notifications">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-          <path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0 1 13.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 0 1-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 1 1-7.48 0 24.585 24.585 0 0 1-4.831-1.244.75.75 0 0 1-.298-1.205A8.217 8.217 0 0 0 5.25 9.75V9Zm4.502 8.9a2.25 2.25 0 1 0 4.496 0 25.057 25.057 0 0 1-4.496 0Z" clip-rule="evenodd" />
-        </svg>
-      </button>
+      <div class="flex items-center gap-3 shrink-0 ml-4">
+        <div class="flex items-center bg-slate-100 rounded-full p-1 text-xs font-semibold" role="radiogroup" aria-label="AI model">
+          <button
+            type="button"
+            role="radio"
+            :aria-checked="provider === 'claude'"
+            @click="provider = 'claude'"
+            :class="provider === 'claude' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+            class="px-3 py-1.5 rounded-full transition-colors"
+          >
+            Claude
+          </button>
+          <button
+            type="button"
+            role="radio"
+            :aria-checked="provider === 'gemini'"
+            @click="provider = 'gemini'"
+            :class="provider === 'gemini' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+            class="px-3 py-1.5 rounded-full transition-colors"
+          >
+            Gemini
+          </button>
+        </div>
+
+        <button class="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-400 hover:bg-amber-100 transition shrink-0" aria-label="Notifications">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+            <path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0 1 13.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 0 1-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 1 1-7.48 0 24.585 24.585 0 0 1-4.831-1.244.75.75 0 0 1-.298-1.205A8.217 8.217 0 0 0 5.25 9.75V9Zm4.502 8.9a2.25 2.25 0 1 0 4.496 0 25.057 25.057 0 0 1-4.496 0Z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
     </header>
 
     <!-- Chat card -->
@@ -152,6 +177,9 @@ const isTyping = ref(false)
 const errorText = ref('')
 const messagesEl = ref(null)
 
+const provider = ref(localStorage.getItem('aiTutorProvider') === 'gemini' ? 'gemini' : 'claude')
+watch(provider, (value) => localStorage.setItem('aiTutorProvider', value))
+
 const messages = ref([])
 let nextId = 1
 
@@ -205,7 +233,7 @@ async function sendMessage() {
 
   try {
     const history = messages.value.slice(0, -1).map((m) => ({ role: m.role, text: m.text }))
-    const reply = await askAiTutor({ question: text, patternContext: buildPatternContext(), history })
+    const reply = await askAiTutor({ question: text, patternContext: buildPatternContext(), history, provider: provider.value })
     messages.value.push({ id: nextId++, role: 'ai', text: reply })
   } catch {
     errorText.value = 'The AI Tutor is unavailable right now. Please try again.'

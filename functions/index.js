@@ -1,11 +1,14 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https')
 const { defineSecret } = require('firebase-functions/params')
 const Anthropic = require('@anthropic-ai/sdk')
+const { GoogleGenAI } = require('@google/genai')
 
 const anthropicApiKey = defineSecret('ANTHROPIC_API_KEY')
+const geminiApiKey = defineSecret('GEMINI_API_KEY')
 
 const MAX_MESSAGE_LENGTH = 800
 const MAX_HISTORY_MESSAGES = 8
+const PROVIDERS = ['claude', 'gemini']
 
 const SYSTEM_PROMPT = `You are the PreLearn.ai AI Tutor for Cambodian Bac II Mathematics students.
 
@@ -34,52 +37,70 @@ function buildContextBlock(patternContext) {
   return lines.length > 1 ? lines.join('\n') : ''
 }
 
+async function callClaude(apiKey, history, userContent) {
+  const anthropic = new Anthropic({ apiKey })
+
+  const priorMessages = history.map((m) => ({
+    role: m.role === 'ai' ? 'assistant' : 'user',
+    content: truncate(m.text, MAX_MESSAGE_LENGTH)
+  }))
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-5',
+    max_tokens: 400,
+    system: SYSTEM_PROMPT,
+    messages: [...priorMessages, { role: 'user', content: userContent }]
+  })
+
+  return response.content?.[0]?.type === 'text' ? response.content[0].text : ''
+}
+
+async function callGemini(apiKey, history, userContent) {
+  const gemini = new GoogleGenAI({ apiKey })
+
+  const priorContents = history.map((m) => ({
+    role: m.role === 'ai' ? 'model' : 'user',
+    parts: [{ text: truncate(m.text, MAX_MESSAGE_LENGTH) }]
+  }))
+
+  const response = await gemini.models.generateContent({
+    model: 'gemini-2.5-flash',
+    config: { systemInstruction: SYSTEM_PROMPT },
+    contents: [...priorContents, { role: 'user', parts: [{ text: userContent }] }]
+  })
+
+  return response.text ?? ''
+}
+
 exports.askAiTutor = onCall(
-  { secrets: [anthropicApiKey], cors: true },
+  { secrets: [anthropicApiKey, geminiApiKey], cors: true },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError('unauthenticated', 'Sign in to chat with the AI Tutor.')
     }
 
-    const { question, patternContext, history } = request.data ?? {}
+    const { question, patternContext, history, provider } = request.data ?? {}
+    const selectedProvider = PROVIDERS.includes(provider) ? provider : 'claude'
+
     const cleanQuestion = truncate(question, MAX_MESSAGE_LENGTH).trim()
     if (!cleanQuestion) {
       throw new HttpsError('invalid-argument', 'question is required.')
     }
 
     const contextBlock = buildContextBlock(patternContext)
-
-    const priorMessages = Array.isArray(history)
-      ? history.slice(-MAX_HISTORY_MESSAGES).map((m) => ({
-          role: m.role === 'ai' ? 'assistant' : 'user',
-          content: truncate(m.text, MAX_MESSAGE_LENGTH)
-        }))
-      : []
-
-    const messages = [
-      ...priorMessages,
-      {
-        role: 'user',
-        content: contextBlock ? `${contextBlock}\n\nStudent question: ${cleanQuestion}` : cleanQuestion
-      }
-    ]
-
-    const anthropic = new Anthropic({ apiKey: anthropicApiKey.value() })
+    const userContent = contextBlock ? `${contextBlock}\n\nStudent question: ${cleanQuestion}` : cleanQuestion
+    const trimmedHistory = Array.isArray(history) ? history.slice(-MAX_HISTORY_MESSAGES) : []
 
     try {
-      const response = await anthropic.messages.create({
-        model: 'claude-sonnet-5',
-        max_tokens: 400,
-        system: SYSTEM_PROMPT,
-        messages
-      })
+      const reply = selectedProvider === 'gemini'
+        ? await callGemini(geminiApiKey.value(), trimmedHistory, userContent)
+        : await callClaude(anthropicApiKey.value(), trimmedHistory, userContent)
 
-      const reply = response.content?.[0]?.type === 'text' ? response.content[0].text : ''
       if (!reply) {
         throw new HttpsError('internal', 'The AI Tutor did not return a response.')
       }
 
-      return { reply }
+      return { reply, provider: selectedProvider }
     } catch (err) {
       if (err instanceof HttpsError) throw err
       console.error('askAiTutor failed', err)
