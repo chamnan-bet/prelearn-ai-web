@@ -135,6 +135,10 @@ app.post('/api/ask-ai-tutor', async (req, res) => {
 const port = process.env.PORT ?? 3000
 app.listen(port, () => {
   console.log(`AI Tutor server listening on port ${port}`)
-  console.log(`- Gemini API Key: ${process.env.GEMINI_API_KEY ? 'DETECTED' : 'NOT FOUND (Check server/.env)'}`)
-  console.log(`- Claude API Key: ${process.env.ANTHROPIC_API_KEY ? 'DETECTED' : 'NOT FOUND (Check server/.env)'}`)
+  console.log(
+    `- Gemini API Key: ${process.env.GEMINI_API_KEY ? 'DETECTED' : 'NOT FOUND (Check server/.env)'}`,
+  )
+  console.log(
+    `- Claude API Key: ${process.env.ANTHROPIC_API_KEY ? 'DETECTED' : 'NOT FOUND (Check server/.env)'}`,
+  )
 })
