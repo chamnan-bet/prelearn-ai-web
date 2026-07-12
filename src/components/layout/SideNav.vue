@@ -2,7 +2,10 @@
   <aside class="w-52 h-screen bg-white border-r border-slate-200 flex flex-col shrink-0 sticky top-0 overflow-y-auto">
     <!-- Brand -->
     <div class="px-6 py-6 shrink-0">
-      <p class="text-xl font-black text-slate-900 leading-tight">PreLearn</p>
+      <div class="flex items-center gap-2">
+        <p class="text-xl font-black text-slate-900 leading-tight">PreLearn</p>
+        <span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md border border-slate-200/60">v0.0.1</span>
+      </div>
       <p class="text-xs text-slate-400 font-medium mt-0.5">Bac II exam preparation</p>
     </div>
 
