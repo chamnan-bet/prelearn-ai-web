@@ -17,7 +17,7 @@ AiTutorView.vue
                           ──→  functions/index.js: askAiTutor()
                                  - verify request.auth
                                  - build system prompt + context
-                                 - call Anthropic SDK  ──────→  claude-sonnet-5
+                                 - call Anthropic SDK  ──────→  claude-3-5-sonnet-latest
                                                           ←──────  reply text
                           ←──  { reply: "..." }
   ← reply
@@ -49,7 +49,7 @@ Relevant files:
    - **Input sanitization**: `truncate()` caps message length; only the last `MAX_HISTORY_MESSAGES` (8) are kept, bounding token usage per request.
    - **Context assembly**: `buildContextBlock()` turns the pattern fields into a labeled text block (`Title: ...`, `Warning: ...`, `Common mistake: ...`, `Correct approach: ...`) and prepends it to the student's question. This is what "grounds" the model's answer in the curated Failure Knowledge Graph instead of just answering from general knowledge.
    - **System prompt**: `SYSTEM_PROMPT` encodes PreLearn's actual pedagogy — warn before explaining — so the model's behavior matches the product's core mechanic, not a generic tutor persona.
-   - **The API call**: `anthropic.messages.create({ model: 'claude-sonnet-5', system: SYSTEM_PROMPT, messages })`.
+   - **The API call**: `anthropic.messages.create({ model: 'claude-3-5-sonnet-latest', system: SYSTEM_PROMPT, messages })`.
    - **The secret**: `defineSecret('ANTHROPIC_API_KEY')` reads the value stored via `firebase functions:secrets:set ANTHROPIC_API_KEY` — injected into the function's runtime environment by Google, never bundled into browser-facing code.
 
 5. **Response** — the function extracts the text and returns `{ reply }`. Firebase returns this to the browser as `result.data`.
@@ -98,7 +98,7 @@ const gemini = new GoogleGenAI({ apiKey: geminiApiKey.value() })
 ```js
 // Claude
 const response = await anthropic.messages.create({
-  model: 'claude-sonnet-5',
+  model: 'claude-3-5-sonnet-latest',
   max_tokens: 400,
   system: SYSTEM_PROMPT,
   messages   // [{ role: 'user'|'assistant', content: '...' }]
