@@ -5,7 +5,7 @@
       <div class="flex items-center gap-2">
         <p class="text-2xl font-semibold text-slate-900 leading-tight">PreLearn AI</p>
       </div>
-      <span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md border border-slate-200/60">v0.0.1</span>
+      <span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md border border-slate-200/60">v0.0.2</span>
       <!-- <p class="text-xs text-slate-400 font-medium mt-0.5">Bac II exam preparation</p> -->
     </div>
 

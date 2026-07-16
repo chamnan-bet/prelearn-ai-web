@@ -9,7 +9,6 @@ admin.initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID })
 
 const MAX_MESSAGE_LENGTH = 800
 const MAX_HISTORY_MESSAGES = 8
-const PROVIDERS = ['claude', 'gemini']
 
 const SYSTEM_PROMPT = `Your job:
 1. Explains common mistake patterns clearly and briefly, usually in 1–2 sentences unless the student requests more detail.
@@ -101,7 +100,7 @@ app.post('/api/ask-ai-tutor', async (req, res) => {
   }
 
   const { question, patternContext, history, provider } = req.body ?? {}
-  const selectedProvider = PROVIDERS.includes(provider) ? provider : 'gemini'
+  const selectedProvider = (provider === 'claude' && process.env.ANTHROPIC_API_KEY) ? 'claude' : 'gemini'
 
   const cleanQuestion = truncate(question, MAX_MESSAGE_LENGTH).trim()
   if (!cleanQuestion) {

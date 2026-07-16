@@ -95,19 +95,24 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 
-# Optional — points the AI Tutor at a deployed proxy instead of the default /api/ask-ai-tutor
-VITE_AI_TUTOR_API_URL=https://chamnan.online/api/ask-ai-tutor
+# Points the AI Tutor at the backend server (use http://localhost:3000/api/ask-ai-tutor for local dev, or https://chamnan.online/api/ask-ai-tutor for production)
+VITE_AI_TUTOR_API_URL=http://localhost:3000/api/ask-ai-tutor
 ```
 
 You can find the Firebase values in your [Firebase Console](https://console.firebase.google.com/) under **Project Settings → Your apps**.
 
-To also run the AI Tutor proxy locally, copy `server/.env.example` to `server/.env`, fill in `GEMINI_API_KEY`/`ANTHROPIC_API_KEY`, and run:
+To also run the AI Tutor proxy locally:
+1. Copy `server/.env.example` to `server/.env`.
+2. Fill in `GEMINI_API_KEY` (and `ANTHROPIC_API_KEY` if you have one).
+3. Ensure `ALLOWED_ORIGIN` is set to `http://localhost:5173` (the local frontend URL).
+4. Run:
 
 ```sh
 cd server
 npm install
 npm start
 ```
+
 
 ### 4. Start the development server
 
