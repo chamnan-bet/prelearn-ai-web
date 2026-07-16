@@ -8,7 +8,7 @@ An AI-powered exam preparation web app for Cambodian **Bac II** students. PreLea
 
 ## Live demo & test credentials
 
-- **Deployment link:** _TODO — not yet deployed, see [Deploying](#deploying) below_
+- **Deployment link:** [https://chamnan.online](https://chamnan.online)
 - **Test account:**
   - Email: `chamnan@gmail.com`
   - Password: `12345678`
@@ -22,7 +22,8 @@ Logging in is only required to save personalised progress. All subject dashboard
 - **Subject dashboard** — track progress across all 7 Bac II subjects with mastery scores and a predicted exam score
 - **Failure pattern library** — browse high-risk and medium-risk patterns per subject, ranked by average mark loss
 - **Step-by-step practice** — each pattern walks through the common mistake, then the correct solution across three guided tabs (Warning → Mistake → Correct)
-- **AI Tutor chat** — ask follow-up questions about any pattern and get explanations in plain language. _Current build uses scripted/rule-based responses modeled on the intended AI flow rather than a live LLM call — see [AI functionality status](#ai-functionality-status)._
+- **AI Tutor chat** — ask follow-up questions about any pattern and get real answers from a live LLM (Gemini or Claude, switchable per chat), grounded in the pattern's warning/mistake/correct context — see [AI functionality status](#ai-functionality-status)
+- **Study Path** — Dijkstra's algorithm walks the Math pattern graph to recommend the optimal study order, pulling connected high-risk patterns forward together (see `useDijkstra.js`); a Greedy next-pattern picker and BFS related-pattern lookup (`useGreedy.js`, `useBFS.js`) are also implemented over the same graph (`patternGraph.js`)
 - **Progress tracking** — view study streak, patterns mastered, predicted score, and a prioritised weak-areas list
 
 ---
@@ -32,8 +33,9 @@ Logging in is only required to save personalised progress. All subject dashboard
 PreLearn.ai's core design is built around AI-driven failure-pattern warnings. In the current build:
 
 - The 30 Math failure patterns, their warning strategy, and the Warning → Mistake → Correct practice flow are curated content stored in Firestore/`mathPatterns.js`, not generated live by a model.
-- A live model integration has been built (Firebase Cloud Function proxying the Claude API — see [`docs/ai-integration.md`](docs/ai-integration.md) for the full architecture and how to swap/add providers like Gemini) but has not yet been deployed/verified end-to-end. Until confirmed working, treat the AI Tutor as scripted.
-- Deploy steps: `firebase functions:secrets:set ANTHROPIC_API_KEY`, then `firebase deploy --only functions` (requires the Blaze plan).
+- The Study Path, related-patterns, and next-pattern-to-study features are real algorithms (Dijkstra, BFS, Greedy) running over a hand-authored pattern relationship graph — not LLM calls.
+- The AI Tutor chat is a **live LLM integration**: the frontend calls a standalone Express server (`server/index.js`) over HTTPS, which verifies the user's Firebase ID token, then forwards the question (plus pattern context and short history) to either the Gemini API (`gemini-2.5-flash`, with Google Search grounding, the default) or the Anthropic API (`claude-3-5-sonnet-latest`). The provider is user-selectable in the chat header. See [`docs/ai-integration.md`](docs/ai-integration.md) for the request lifecycle and how to add another provider.
+- This proxy runs on the same AWS EC2 instance as the frontend, behind Nginx, managed by systemd — see [`docs/deployment-ec2.md`](docs/deployment-ec2.md) for the full setup (this superseded an earlier Firebase Cloud Functions approach, which has been removed).
 
 ---
 
@@ -45,9 +47,10 @@ PreLearn.ai's core design is built around AI-driven failure-pattern warnings. In
 | Build tool | Vite 8 |
 | Styling | Tailwind CSS 4 |
 | Routing | Vue Router 5 |
-| Backend | Firebase (Auth · Cloud Firestore · Analytics) |
+| Backend (data/auth) | Firebase (Auth · Cloud Firestore · Analytics) |
+| Backend (AI proxy) | Node.js + Express (`server/`) — Anthropic & Google GenAI SDKs |
 | Linting | ESLint + Oxlint + Prettier |
-| Deployment | Firebase Hosting |
+| Deployment | AWS EC2 + Nginx (static frontend + `/api` reverse proxy), systemd-managed AI proxy |
 
 ---
 
@@ -91,9 +94,20 @@ VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+
+# Optional — points the AI Tutor at a deployed proxy instead of the default /api/ask-ai-tutor
+VITE_AI_TUTOR_API_URL=https://chamnan.online/api/ask-ai-tutor
 ```
 
-You can find these values in your [Firebase Console](https://console.firebase.google.com/) under **Project Settings → Your apps**.
+You can find the Firebase values in your [Firebase Console](https://console.firebase.google.com/) under **Project Settings → Your apps**.
+
+To also run the AI Tutor proxy locally, copy `server/.env.example` to `server/.env`, fill in `GEMINI_API_KEY`/`ANTHROPIC_API_KEY`, and run:
+
+```sh
+cd server
+npm install
+npm start
+```
 
 ### 4. Start the development server
 
@@ -119,51 +133,73 @@ The app will be available at `http://localhost:5173` with hot-reload enabled.
 
 ## Deploying
 
-The project is configured for **Firebase Hosting** (`firebase.json` serves `dist/`), but no Firebase project has been linked yet (`.firebaserc` is missing) and it has not been deployed. To deploy:
+The app is deployed to an **AWS EC2** instance at [chamnan.online](https://chamnan.online): Nginx serves the built frontend and reverse-proxies `/api/` to the Express AI Tutor proxy (`server/`), which runs as a systemd service. Firebase Auth and Firestore are unchanged — only hosting and the AI proxy moved off Firebase.
+
+Full step-by-step setup (DNS, Nginx config, systemd unit, SSL via certbot) lives in [`docs/deployment-ec2.md`](docs/deployment-ec2.md). Reference config files are in [`deploy/`](deploy/) — `nginx.conf` and `prelearn-ai-tutor.service`.
+
+To redeploy after a frontend change:
 
 ```sh
-npm install -g firebase-tools   # if not already installed
-firebase login
-firebase use --add              # link this folder to your Firebase project
 npm run build                   # outputs to dist/
-firebase deploy --only hosting
+# upload dist/ to /var/www/prelearn-ai-web/dist on the server
 ```
 
-After deploying, update the **Deployment link** above and `Deployment_Link.txt` in the submission zip with the resulting `https://<project-id>.web.app` URL.
+To redeploy after a `server/` change, upload the updated file(s) and run `sudo systemctl restart prelearn-ai-tutor` on the server.
+
+Firebase Hosting/Cloud Functions are no longer used for this project; `firebase.json`'s `functions` block is stale and can be ignored.
 
 ---
 
 ## Project structure
 
 ```
-src/
-├── assets/
-│   ├── main.css           # Tailwind CSS entry point
-│   └── subject/           # Real Bac II exam PDFs (2019, 2021, 2022, 2023, 2025)
-├── components/
-│   ├── layout/            # SideNav (desktop) and BottomNav (mobile)
-│   ├── shared/            # Reusable components (PrimaryButton)
-│   └── tutor/             # PatternCard, QuestionCard, WarningAlert
-├── composables/
-│   └── useAuth.js         # Shared reactive auth state (module-level, no Pinia)
-├── data/
-│   └── mathPatterns.js    # 30 Math failure patterns derived from real exam PDFs
-├── router/
-│   └── index.js           # Routes (login/register optional) plus dev-only /dev/seed
-├── services/
-│   ├── firebase.js        # Firebase app initialisation
-│   ├── auth.js            # register, login, signOut helpers
-│   ├── db.js              # Cloud Firestore instance
-│   └── patterns.js        # fetchPatterns, fetchPatternById, seedPatterns
-└── views/
-    ├── HomeView.vue        # Subject selection and progress overview
-    ├── PatternView.vue     # Failure pattern list for a subject (reads from Firestore)
-    ├── PracticeView.vue    # Step-by-step practice: Warning → Mistake → Correct
-    ├── LoginView.vue       # Firebase email/password login
-    ├── RegisterView.vue    # Firebase user registration
-    ├── AiTutorView.vue     # AI chat interface (planned)
-    ├── ProgressView.vue    # Study stats and weak areas (planned)
-    └── DevSeedView.vue     # Dev-only: seed Firestore from mathPatterns.js
+prelearn-ai-web/
+├── server/                  # Standalone Express AI Tutor proxy (deployed separately, see docs/deployment-ec2.md)
+│   ├── index.js             # POST /api/ask-ai-tutor — verifies Firebase ID token, calls Gemini or Claude
+│   └── .env.example         # PORT, FIREBASE_PROJECT_ID, GEMINI_API_KEY, ANTHROPIC_API_KEY, ALLOWED_ORIGIN
+├── deploy/                  # Reference configs for the EC2 deployment
+│   ├── nginx.conf           # Serves dist/, proxies /api/ to the Express server
+│   └── prelearn-ai-tutor.service  # systemd unit for server/index.js
+├── docs/
+│   ├── ai-integration.md    # AI Tutor request lifecycle, how to add/swap providers
+│   └── deployment-ec2.md    # Full EC2 + Nginx + systemd + SSL deployment guide
+└── src/
+    ├── assets/
+    │   ├── main.css           # Tailwind CSS entry point
+    │   └── subject/           # Real Bac II exam PDFs (2019, 2021, 2022, 2023, 2025)
+    ├── components/
+    │   ├── layout/          # SideNav (desktop), TopNav, BottomNav (mobile)
+    │   ├── shared/          # Reusable components (PrimaryButton)
+    │   └── tutor/           # PatternCard, QuestionCard, WarningAlert
+    ├── composables/
+    │   ├── useAuth.js         # Shared reactive auth state (module-level, no Pinia)
+    │   ├── useAiTutorChat.js  # Per-pattern chat history, persisted to localStorage
+    │   ├── useProgress.js     # Mastery/progress derived state
+    │   ├── useDijkstra.js     # Optimal study-order algorithm (Study Path)
+    │   ├── useGreedy.js       # Highest-risk-next pattern picker
+    │   └── useBFS.js          # Related-patterns lookup over the pattern graph
+    ├── data/
+    │   ├── mathPatterns.js    # 30 Math failure patterns derived from real exam PDFs
+    │   └── patternGraph.js    # Hand-authored adjacency list linking related patterns
+    ├── router/
+    │   └── index.js           # Routes (login/register optional) plus dev-only /dev/seed
+    ├── services/
+    │   ├── firebase.js        # Firebase app initialisation
+    │   ├── auth.js            # register, login, signOut helpers
+    │   ├── db.js              # Cloud Firestore instance
+    │   ├── patterns.js        # fetchPatterns, fetchPatternById, seedPatterns
+    │   ├── progress.js        # Reads/writes user progress in Firestore
+    │   └── aiTutor.js         # Calls the deployed AI Tutor proxy (server/)
+    └── views/
+        ├── HomeView.vue       # Subject selection and progress overview
+        ├── PatternView.vue    # Failure pattern list for a subject (reads from Firestore)
+        ├── PracticeView.vue   # Step-by-step practice: Warning → Mistake → Correct
+        ├── LoginView.vue      # Firebase email/password login
+        ├── RegisterView.vue   # Firebase user registration
+        ├── AiTutorView.vue    # Live AI chat, provider switch (Gemini/Claude)
+        ├── ProgressView.vue   # Study stats and weak areas
+        ├── StudyPathView.vue  # Dijkstra-ordered recommended study path
+        └── DevSeedView.vue    # Dev-only: seed Firestore from mathPatterns.js
 ```
 
 ---
