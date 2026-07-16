@@ -4,18 +4,18 @@
     <!-- Page header -->
     <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shrink-0">
       <div>
-        <p class="font-black text-slate-900 text-base leading-tight">PreLearn</p>
-        <p class="text-xs text-slate-400">Bac II exam preparation</p>
+        <p class="text-xl font-medium text-slate-900 text-base leading-tight">PreLearn AI</p>
+      <p class="text-xs text-blue-500">Bac II exam preparation</p>
       </div>
       <div class="flex items-center gap-2">
         <RouterLink
           v-if="!user"
           to="/login"
-          class="md:hidden text-xs font-bold text-blue-700 hover:text-blue-800 transition px-3 py-1.5 rounded-xl border border-blue-200 hover:bg-blue-50"
+          class="md:hidden text-xs font-semibold text-blue-700 hover:text-blue-800 transition px-3 py-1.5 rounded-xl border border-blue-200 hover:bg-blue-50"
         >
           Sign in
         </RouterLink>
-        <button class="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-400 hover:bg-amber-100 transition" aria-label="Notifications">
+        <button class="w-10 h-10 rounded-xl bg-amber-50 border-amber-200 flex items-center justify-center text-amber-400 hover:bg-amber-100 transition" aria-label="Notifications">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
           <path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0 1 13.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 0 1-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 1 1-7.48 0 24.585 24.585 0 0 1-4.831-1.244.75.75 0 0 1-.298-1.205A8.217 8.217 0 0 0 5.25 9.75V9Zm4.502 8.9a2.25 2.25 0 1 0 4.496 0 25.057 25.057 0 0 1-4.496 0Z" clip-rule="evenodd" />
         </svg>
@@ -30,49 +30,38 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-5">
           <div>
             <div class="flex items-baseline gap-1">
-              <span class="text-4xl font-black">{{ masteredCount }}</span>
-              <span class="text-blue-300 text-xl font-bold">/30</span>
+              <span class="text-2xl font-semibold">{{ masteredCount }}</span>
+              <span class="text-2xl font-semibold">/30</span>
             </div>
-            <p class="text-blue-200 text-[10px] font-black uppercase tracking-widest mt-1">Patterns Mastered</p>
+            <p class="text-[10px] uppercase tracking-widest mt-1">Patterns Mastered</p>
           </div>
           <div>
-            <div class="text-4xl font-black">{{ predictedScore }}%</div>
-            <p class="text-blue-200 text-[10px] font-black uppercase tracking-widest mt-1">Predicted Score</p>
-          </div>
-          <div>
-            <div class="flex items-baseline gap-2">
-              <span class="text-4xl font-black">7</span>
-              <span class="text-xl">🔥</span>
-            </div>
-            <p class="text-blue-200 text-[10px] font-black uppercase tracking-widest mt-1">Day Streak</p>
-          </div>
-          <div>
-            <div class="text-4xl font-black">18</div>
-            <p class="text-blue-200 text-[10px] font-black uppercase tracking-widest mt-1">Days to Exam</p>
+            <div class="text-2xl font-semibold">{{ predictedScore }}%</div>
+            <p class="text-[10px] uppercase tracking-widest mt-1">Predicted Score</p>
           </div>
         </div>
         <div class="bg-blue-500/40 rounded-full h-2 overflow-hidden mb-2">
           <div class="bg-white rounded-full h-2 transition-all duration-700" :style="{ width: progressPercent + '%' }"></div>
         </div>
-        <p class="text-blue-300 text-xs">{{ progressPercent }}% overall progress</p>
+        <p class="text-xs">{{ progressPercent }}% Overall Progress</p>
       </div>
 
       <!-- Greedy recommendation card -->
-      <div v-if="nextPattern" class="mb-7">
-        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">AI Recommendation</p>
+      <!-- <div v-if="nextPattern" class="mb-7">
+        <p class="text-[10px]  text-slate-400 uppercase tracking-widest mb-3">AI Recommendation</p>
         <div
           class="bg-white border border-blue-200 rounded-2xl px-6 py-5 flex items-center justify-between gap-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
           @click="goToPractice(nextPattern)"
         >
           <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap mb-1">
-              <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest">Study next</span>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" :class="nextPattern.riskLevel === 'high' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-amber-50 text-amber-600 border border-amber-100'">
+              <span class="text-[10px]  text-blue-600 uppercase tracking-widest">Study next</span>
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" :class="nextPattern.riskLevel === 'high' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-amber-50 text-amber-600 border border-amber-100'">
                 {{ nextPattern.risk }}
               </span>
-              <span class="text-[10px] font-bold text-slate-400">{{ nextPattern.marks }}</span>
+              <span class="text-[10px] font-semibold text-slate-400">{{ nextPattern.marks }}</span>
             </div>
-            <p class="font-bold text-slate-900 text-base leading-tight truncate">{{ nextPattern.title }}</p>
+            <p class="font-semibold text-slate-900 text-base leading-tight truncate">{{ nextPattern.title }}</p>
             <p class="text-xs text-slate-400 mt-0.5">{{ nextPattern.subject }}</p>
           </div>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 text-blue-600 shrink-0" aria-hidden="true">
@@ -80,15 +69,15 @@
           </svg>
         </div>
       </div>
-      <div v-else-if="masteredCount === 30" class="mb-7 bg-emerald-50 border border-emerald-200 rounded-2xl px-6 py-5 text-emerald-700 font-bold text-sm">
+      <div v-else-if="masteredCount === 30" class="mb-7 bg-emerald-50 border border-emerald-200 rounded-2xl px-6 py-5 text-emerald-700 font-semibold text-sm">
         ✓ All 30 patterns mastered — you are exam ready!
-      </div>
+      </div> -->
 
       <!-- Section label -->
-      <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Select Subject</p>
+      <p class="text-[12px]  text-slate-500 uppercase tracking-widest mb-4">Select Subject</p>
 
       <!-- Subject cards grid -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-7">
         <div
           v-for="subject in subjects"
           :key="subject.id"
@@ -97,45 +86,36 @@
           :aria-label="`Go to ${subject.name} patterns`"
           @click="goToPatterns(subject.id)"
           @keyup.enter="goToPatterns(subject.id)"
-          class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+          class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
           :class="{ 'border-blue-300 shadow-md': subject.id === 'math' }"
         >
-          <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-2xl mb-3">
+          <div class="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-2xl mb-2">
             {{ subject.icon }}
           </div>
-          <p class="font-bold text-slate-900 text-base leading-tight">{{ subject.name }}</p>
-          <p class="text-xs text-slate-400 mb-3 mt-0.5">{{ subject.totalPatterns }} patterns</p>
+          <p class="font-semibold text-slate-900 text-base leading-tight">{{ subject.name }}</p>
+          <p class="text-xs text-slate-500 mb-3 mt-0.5">{{ subject.totalPatterns }} patterns</p>
           <div class="h-1 bg-slate-100 rounded-full overflow-hidden">
             <div
               class="h-full bg-blue-600 rounded-full transition-all duration-700"
               :style="{ width: `${subject.progress}%` }"
             ></div>
           </div>
-          <p v-if="subject.progress > 0" class="text-xs text-slate-400 mt-1">{{ subject.progress }}% complete</p>
+          <p v-if="subject.progress > 0" class="text-xs text-slate-500 mt-1">{{ subject.progress }}% complete</p>
         </div>
       </div>
 
       <!-- CTA row -->
-      <div class="flex flex-wrap items-center gap-4">
-        <button
-          @click="goToPatterns('math')"
-          class="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 active:scale-[0.98] text-white font-bold px-6 py-3 rounded-xl transition"
-        >
-          View failure patterns
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-          </svg>
-        </button>
-        <RouterLink
-          to="/study-path"
-          class="inline-flex items-center gap-2 font-semibold text-slate-600 hover:text-slate-900 transition text-sm"
-        >
-          View study path
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-          </svg>
-        </RouterLink>
-      </div>
+    <div class="w-full">
+      <button
+        @click="goToPatterns('math')"
+        class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold px-6 py-4 rounded-xl transition"
+      >
+        View failure patterns
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+        </svg>
+      </button>
+    </div>
 
     </main>
   </div>
@@ -175,7 +155,11 @@ const progressPercent = computed(() => Math.round((masteredCount.value / 30) * 1
 const nextPattern = computed(() => greedyNextPattern(activePatterns.value, masteredIds.value))
 
 const goToPatterns = (subjectId) => {
-  router.push({ name: 'patterns', params: { subject: subjectId } })
+  router.push({
+    name: 'patterns',
+    params: { subject: subjectId },
+    query: { from: 'subject' }
+  })
 }
 
 const goToPractice = (pattern) => {

@@ -5,26 +5,27 @@
       class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shrink-0"
     >
       <div class="flex items-center gap-5 min-w-0">
-        <RouterLink
-          :to="subject ? { name: 'patterns', params: { subject } } : { name: 'home' }"
-          class="flex items-center gap-1.5 text-slate-500 hover:text-slate-700 text-sm font-semibold transition shrink-0"
+      <RouterLink
+        v-if="$route.query.from === 'pattern'"
+        :to="subject ? { name: 'patterns', params: { subject } } : { name: 'home' }"
+        class="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-sm font-semibold transition shrink-0"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2.5"
+          stroke="currentColor"
+          class="w-4 h-4"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2.5"
-            stroke="currentColor"
-            class="w-4 h-4"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
-            />
-          </svg>
-          Back
-        </RouterLink>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
+          />
+        </svg>
+        Home
+      </RouterLink>
 
         <div class="flex items-center gap-3 min-w-0">
           <div
@@ -55,7 +56,7 @@
           role="radiogroup"
           aria-label="AI model"
         >
-          <button
+          <!-- <button
             type="button"
             role="radio"
             :aria-checked="provider === 'claude'"
@@ -82,11 +83,11 @@
             class="px-3 py-1.5 rounded-full transition-colors"
           >
             Gemini
-          </button>
+          </button> -->
         </div>
 
         <button
-          class="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-400 hover:bg-amber-100 transition shrink-0"
+          class="w-10 h-10 rounded-lg bg-amber-50 border-amber-200 flex items-center justify-center text-amber-400 hover:bg-amber-100 transition shrink-0"
           aria-label="Notifications"
         >
           <svg
@@ -127,14 +128,14 @@
                 AI
               </div>
               <div class="max-w-[78%] bg-slate-100 rounded-2xl rounded-tl-sm px-4 py-3">
-                <p class="text-slate-700 text-sm leading-relaxed">{{ msg.text }}</p>
+                <p class="text-slate-700 text-sm font-medium  leading-relaxed">{{ msg.text }}</p>
               </div>
             </div>
 
             <!-- User message — blue bubble, right-aligned -->
             <div v-else class="flex justify-end">
               <div
-                class="max-w-[72%] bg-blue-700 text-white text-sm leading-relaxed px-4 py-3 rounded-2xl rounded-tr-sm shadow-sm"
+                class="max-w-[72%] bg-blue-700 text-white text-sm font-medium  leading-relaxed px-4 py-3 rounded-2xl rounded-tr-sm shadow-sm"
               >
                 {{ msg.text }}
               </div>
@@ -168,20 +169,20 @@
           </div>
 
           <!-- Error banner -->
-          <p v-if="errorText" class="text-sm text-red-600 px-1" role="alert">{{ errorText }}</p>
+          <p v-if="errorText" class="text-sm font-medium  text-red-600 px-1" role="alert">{{ errorText }}</p>
         </div>
 
         <!-- Auth still resolving -->
         <div v-if="!authReady" class="border-t border-slate-100 p-5 shrink-0 text-center">
-          <p class="text-sm text-slate-400">Loading…</p>
+          <p class="text-sm font-medium  text-slate-400">Loading…</p>
         </div>
 
         <!-- Sign-in gate -->
         <div v-else-if="!user" class="border-t border-slate-100 p-5 shrink-0 text-center">
-          <p class="text-sm text-slate-500 mb-3">Sign in to chat with the AI Tutor.</p>
+          <p class="text-sm font-medium  text-slate-500 mb-3">Sign in to chat with the AI Tutor.</p>
           <RouterLink
             to="/login"
-            class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold transition-colors"
+            class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium  font-semibold transition-colors"
           >
             Sign in
           </RouterLink>
@@ -195,7 +196,7 @@
               type="text"
               placeholder="Ask about this pattern..."
               :disabled="isTyping"
-              class="flex-grow bg-slate-100 rounded-full px-5 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-400 transition disabled:opacity-60"
+              class="flex-grow bg-slate-100 rounded-full px-5 py-3 text-sm font-medium  text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-400 transition disabled:opacity-60"
               aria-label="Message input"
             />
             <button
